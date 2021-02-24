@@ -69,6 +69,7 @@ function boot(){
         });
         win.on('focus', () => {
             if (pinging){
+                win.flashFrame(false);
                 tray.setImage(trayImage);
                 pinging = false;
             };
