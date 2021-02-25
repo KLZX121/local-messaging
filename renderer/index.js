@@ -540,8 +540,6 @@ function toggleConnectionBtns(normal){
     manualConnect.style.display = normal ? 'block' : 'none';
     recentConnectionsDiv.style.display = normal ? 'block' : 'none';
     memberListDiv.style.display = normal ? 'none' : 'block';
-    endWhenFoundDiv.style.display = normal ? 'block' : 'none';
-    joinWhenFoundDiv.style.display = normal ? 'block' : 'none';
     if (normal) {
         username.removeAttribute('readonly');
         infoHost.innerHTML = '';
@@ -588,8 +586,8 @@ function displayAppVersion(){
 function pingRecentlyConnected(){
     recentlyConnected.forEach(server => {
         const btn = server.btn;
-        btn.style.color = 'black';
-        btn.title = '';
+        btn.style.color = 'red';
+        btn.title = 'Pinging...';
         const req = http.request({hostname: server.ipAddress, port: port, method: 'GET'}, res => {
             btn.style.color = 'green';
             btn.title = 'Server Online';
@@ -598,7 +596,6 @@ function pingRecentlyConnected(){
             });
         });
         req.on('error', error => {
-            btn.style.color = 'red';
             btn.title = 'Server Offline';
         });
         req.end();

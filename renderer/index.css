@@ -104,7 +104,14 @@ h3 {
     background-color: white;
     padding: 10px;
     border-radius: 10px;
+    font-size: 0.9em;
 }
 #settingsDiv h2 {
     margin-top: 0;
+}
+.settingsInput {
+    font-size: 0.8em;
+}
+#settingsDiv h3 {
+    margin-bottom: 0;
 }

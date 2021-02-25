@@ -52,14 +52,6 @@
     
                 </div>
             </div>
-            <div id="endWhenFoundDiv">
-                <label for="endWhenFound" title="Will end the network scan when an open server is found">End search when server found?</label>
-                <input type="checkbox" id="endWhenFound" checked>
-            </div>
-            <div id="joinWhenFoundDiv">
-                <label for="joinWhenFound" title="Will join the first open server that is found when scanning">Auto-join when server found?</label>
-                <input type="checkbox" id="joinWhenFound">
-            </div>
             <div id="controlPanel">
                 <button id="hostBtn" title="Host a server on your local network">Host Server</button>
                 <button id="searchServersBtn" title="Scan for open servers on your local network. Warning: may cause lag">Search for Servers</button>
@@ -94,10 +86,23 @@
         <section id="settingsContainer" style="display: none;">
             <div id="settingsDiv">
                 <h2>Settings</h2>
+
                 <div>
                     <strong>Username:</strong>
-                    <input type="text" id="username" placeholder="Username" maxlength="30">
-                    <button id="saveUsernameBtn">Save Username</button>
+                    <input type="text" id="username" class="settingsInput" placeholder="Username" maxlength="30">
+                    <button id="saveUsernameBtn" class="settingsInput">Save Username</button>
+                </div>
+
+                <div>
+                    <h3>Network Scanning</h3>
+                    <div id="endWhenFoundDiv">
+                        <label for="endWhenFound" title="Will end the network scan when an open server is found">End search when server found?</label>
+                        <input type="checkbox" id="endWhenFound" checked>
+                    </div>
+                    <div id="joinWhenFoundDiv">
+                        <label for="joinWhenFound" title="Will join the first open server that is found when scanning">Auto-join when server found?</label>
+                        <input type="checkbox" id="joinWhenFound">
+                    </div>
                 </div>
             </div>
         </section>
