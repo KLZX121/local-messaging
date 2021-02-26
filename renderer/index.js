@@ -86,6 +86,21 @@ function generateid(length) {
     };
     return result;
 };
+function generatekey(length) {
+    key = [];
+    for (var i=0;i<=length;i++) {
+        let id = generateid(50);
+        generateagain:
+        if (id in key) {
+            let id = generateid(50);
+            break generateagain;
+        }
+        else {
+            key.push(id);
+        }
+    }
+    return key;
+}
 
 joinWhenFound.addEventListener('input', () => { //when join when found option is checked, turns end when found on and disables it
     if (joinWhenFound.checked) {
@@ -133,7 +148,7 @@ function hostServer(){
 
     let history = [];
     let wsId = 1; //used to identify individual websockets
-
+    
     server = http.createServer((req, res) => {res.end(username.value)}); //ends with host name so network scanning can show host's name
     server.on('error', error => {
         server.close(); 
@@ -150,28 +165,49 @@ function hostServer(){
             clientTracking: true
         });
         wss.on('connection', (ws, request) => {
-
+            // Assign an encryption key
+            ws.enc_key = generatekey(143850);
             if (history.length > 0) {
                 ws.send(newMessage('history', null, history)); //send chat history to connected websocket
             };
             ws.id = wsId++;
             ws.send(newMessage('data', null, ws.id)); //assigns an id to the websocket
+            const verifyMsg = newMessage("ss_ss", null, ws.enc_key);
+            ws.send(verifyMsg)
 
             ws.on('message', message => { //handle incoming message from websocket
                 if (JSON.parse(message).type === 'data'){ //save username and if host of the websocket
                     const data = JSON.parse(JSON.parse(message).data);
-
                     ws.username = data.username;
                     ws.isHost = data.isHost;
-
+                    ws.isVerified = false;
                     const msg = newMessage('system join', 'Global System', `${ws.username}${ws.isHost ? ' (host)' : ''} has joined`);
                     history.push(msg);
-                    sendToAll(msg);
+                    sendToAll(msg,false);
 
                     sendMemberList(); //updates the connected members list
-                } else{
-                    history.push(message);
-                    sendToAll(message);
+                } 
+                else if (JSON.parse(message).type === 'verification') {
+                    const userid = JSON.parse(message).username;
+                    if (decrypt(JSON.parse(message).data,ws.enc_key)=="Verification Successful") {
+                        console.log("verified");
+                        members.find(x => x.id=userid).verified = true;
+                        ws.isVerified = true;
+                    }
+                    else {
+                        console.log("Failure");
+                        ws.send(newMessage("data","Encryption System",encrypt("Handshake Failed.",JSON.parse(message).message)));
+                    }
+                }
+                else{
+                    if (ws.isVerified) {
+                        console.log(decrypt(message,ws.enc_key))
+                        history.push(decrypt(message,ws.enc_key)); 
+                        sendToAll(newMessage(JSON.parse(message).type,JSON.parse(message).username,decrypt(JSON.parse(message).data,ws.enc_key)),true);
+                    }
+                    else {
+                        sendToAll(newMessage("message","Global System","A client has sent a message using an outdated version of the chat client that does not support end-to-end encryption."))
+                    }
                 };
                 history = history.slice(-100); //trims chat history to the latest 100
             });
@@ -180,24 +216,38 @@ function hostServer(){
                 if (reason) {
                     const msg = newMessage('system leave', 'Global System', `${reason} has left`);
                     history.push(msg);
-                    sendToAll(msg);
+                    sendToAll(msg,true);
                 } else {
                     const msg = newMessage('system leave', 'Global System', `${ws.username} disconnected`);
                     history.push(msg);
-                    sendToAll(msg);
+                    sendToAll(msg,true);
                 };
                 sendMemberList();
             });
 
-            function sendToAll(message){
-                wss.clients.forEach(ws => ws.send(message))
-            };
+            function sendToAll(message,enc){
+                console.log(message);
+                if (enc) {
+                    message = JSON.parse(message);
+                    wss.clients.forEach(function(member) {
+                        if(member.isVerified) {
+                            ws.send(newMessage(message.type,message.username,encrypt(message.data.toString(),ws.enc_key)))
+                        }
+                        else {
+                            ws.send(newMessage("System","Global System","Unfortunately, you are running an outdated version of the chat application that does not support end-to-end encryption. Please update your application to view this message."));
+                        }
+                    })
+                }
+                else {
+                    wss.clients.forEach(ws=>ws.send(message));
+                }
+            }
+            members = [];
             function sendMemberList(){
-                let members = [];
                 wss.clients.forEach(ws => {
-                    members.push({username: ws.username, isHost: ws.isHost, id: ws.id})
+                    members.push({username: ws.username, isHost: ws.isHost, id: ws.id, verified: ws.isVerified})
                 });
-                sendToAll(newMessage('memberList', null, members));
+                sendToAll(newMessage('memberList', null, members),false);
             };
         });
         connectToServer(true);
@@ -243,13 +293,13 @@ function connectToServer(hoster, ip){
         clearTimeout(timeout);
         infoStatus.innerHTML = 'Connected';
         parseMessage(JSON.parse(newMessage('system', 'Local System', `Connected to http://${host}:${port}`)));
-
         clientWs.send(newMessage('data', null, JSON.stringify({username: username.value, isHost: hoster ? true : false}))); //send username and if host to websocket server
     });
 
     clientWs.on('message', message => { //handle incoming message from websocket server
         message = JSON.parse(message);
-
+        console.log(message);
+        console.log(message.type);
         switch (message.type) {
             case 'history': //if receiving chat history
                 message.data.forEach(data => {
@@ -257,7 +307,13 @@ function connectToServer(hoster, ip){
                     parseMessage(data);
                 });
                 break;
-
+            //Security Subsystem - Sent in Text, so, good to not put in plain text
+            case 'ss_ss':
+                console.log("Sent Verification");
+                clientWs.send(newMessage('verification',username.value,encrypt('Verification Successful',message.data)));
+                clientWs.enc_key = message.data;
+                console.log(message.data);
+                break;
             case 'memberList':
                 memberList.innerHTML = '';
 
@@ -283,9 +339,20 @@ function connectToServer(hoster, ip){
             case 'data': //sets the websocket to the id assigned by the server
                 clientWs.id = message.data;
                 break;
-
-            default: 
+            case 'system join':
                 parseMessage(message);
+                break;
+            case 'system leave':
+                parseMessage(message);
+                break;
+            case 'system':
+                parseMessage(message);
+                break;
+            case 'system error':
+                parseMessage(message);
+                break; 
+            default: 
+                parseMessage(JSON.parse(newMessage(message.type,message.username,decrypt(message.data,clientWs.enc_key))));
         };
     });
 
@@ -301,7 +368,7 @@ function connectToServer(hoster, ip){
         if (event.type === 'keydown' && (event.key !== 'Enter' || document.activeElement !== messageInput)) return;
         
         if (clientWs.readyState === 1 && messageInput.value.trim().length > 0){
-            clientWs.send(newMessage('message', username.value || 'Guest', messageInput.value.trim()));
+            clientWs.send(newMessage('message',username.value || 'Guest',encrypt(messageInput.value.trim(),clientWs.enc_key)));
             messageInput.value = '';
         };
     };
@@ -309,7 +376,35 @@ function connectToServer(hoster, ip){
     toggleConnectionBtns(false);
     disconnectBtn.onclick = disconnectAll;
 };
+function encrypt(message, key) {
+    console.log(message);
+    console.log(message.length);
+    /* Fix debugging residuals */
+    encrypted = [];
+    for (let i = 0; i < message.length; i++) {
+        let abc = key[message[i].charCodeAt(0)]; //This doesn't
+        encrypted.push(abc);
+    }
+    return encrypted.toString();
+}
+function decrypt(message,key) {
+    console.log(message);
+    decrypted = [];
+    messageArr = message.split(",")
+    for (let i = 0; i < messageArr.length; i++) {
+        console.log(messageArr[i]);
+        console.log(key.indexOf(messageArr[i]));
+        let varCharCode = key.indexOf(messageArr[i]);
+        decrypted.push(String.fromCharCode(varCharCode));
+    }
+    let decryptedstring = "";
+    for (let i=0;i<decrypted.length;i++) {
+        decryptedstring = decryptedstring + decrypted[i];
+    }
+    console.log(decryptedstring);
+    return decryptedstring;
 
+}
 function setupRecentlyConnected(){
     recentlyConnected = recentlyConnected.filter((server, index, array) => index === array.findIndex(s => s.ipAddress === server.ipAddress));
     recentlyConnected = recentlyConnected.slice(-5);
@@ -473,6 +568,7 @@ function endSearch(ip){
 };
 
 function parseMessage(data){
+    console.log('parsing a message', data, typeof data);
     const timeEm = document.createElement('em');
     timeEm.innerText = data.time;
 
@@ -500,6 +596,7 @@ function trimMessages(){ //caps the chatbox to 100 messages
 };
 
 function newMessage(type, username, data){ //convert this to a constructor maybe someday
+    console.log('creating new message', type, username, data);
     const date = new Date();
     const hours = date.getHours();
     const minutes = date.getMinutes();
