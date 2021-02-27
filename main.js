@@ -23,6 +23,8 @@ function boot(){
     win.webContents.on('did-finish-load', () => win.show());
     ipcMain.on('autoUpdateCheck', setupAutoupdate);
 
+    win.webContents.openDevTools();
+
     setupTray();
 
     function setupTray(){

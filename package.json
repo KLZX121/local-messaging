@@ -23,6 +23,7 @@
   "dependencies": {
     "electron-store": "^7.0.2",
     "electron-updater": "^4.3.5",
+    "iconv": "^3.0.0",
     "ws": "^7.4.3"
   },
   "devDependencies": {
