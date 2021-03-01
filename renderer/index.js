@@ -86,6 +86,7 @@ function generateid(length) {
     };
     return result;
 };
+<<<<<<< HEAD
 function generatekey(length) {
     key = [];
     for (var i=0;i<=length;i++) {
@@ -101,6 +102,8 @@ function generatekey(length) {
     }
     return key;
 }
+=======
+>>>>>>> parent of 3910fac (Update index.js)
 
 joinWhenFound.addEventListener('input', () => { //when join when found option is checked, turns end when found on and disables it
     if (joinWhenFound.checked) {
@@ -148,7 +151,7 @@ function hostServer(){
 
     let history = [];
     let wsId = 1; //used to identify individual websockets
-    
+
     server = http.createServer((req, res) => {res.end(username.value)}); //ends with host name so network scanning can show host's name
     server.on('error', error => {
         server.close(); 
@@ -165,27 +168,26 @@ function hostServer(){
             clientTracking: true
         });
         wss.on('connection', (ws, request) => {
-            // Assign an encryption key
-            ws.enc_key = generatekey(143850);
+
             if (history.length > 0) {
                 ws.send(newMessage('history', null, history)); //send chat history to connected websocket
             };
             ws.id = wsId++;
             ws.send(newMessage('data', null, ws.id)); //assigns an id to the websocket
-            const verifyMsg = newMessage("ss_ss", null, ws.enc_key);
-            ws.send(verifyMsg)
 
             ws.on('message', message => { //handle incoming message from websocket
                 if (JSON.parse(message).type === 'data'){ //save username and if host of the websocket
                     const data = JSON.parse(JSON.parse(message).data);
+
                     ws.username = data.username;
                     ws.isHost = data.isHost;
-                    ws.isVerified = false;
+
                     const msg = newMessage('system join', 'Global System', `${ws.username}${ws.isHost ? ' (host)' : ''} has joined`);
                     history.push(msg);
-                    sendToAll(msg,false);
+                    sendToAll(msg);
 
                     sendMemberList(); //updates the connected members list
+<<<<<<< HEAD
                 } 
                 else if (JSON.parse(message).type === 'verification') {
                     const userid = JSON.parse(message).username;
@@ -208,6 +210,11 @@ function hostServer(){
                     else {
                         sendToAll(newMessage("message","Global System","A client has sent a message using an outdated version of the chat client that does not support end-to-end encryption."))
                     }
+=======
+                } else{
+                    history.push(message);
+                    sendToAll(message);
+>>>>>>> parent of 3910fac (Update index.js)
                 };
                 history = history.slice(-100); //trims chat history to the latest 100
             });
@@ -216,15 +223,16 @@ function hostServer(){
                 if (reason) {
                     const msg = newMessage('system leave', 'Global System', `${reason} has left`);
                     history.push(msg);
-                    sendToAll(msg,true);
+                    sendToAll(msg);
                 } else {
                     const msg = newMessage('system leave', 'Global System', `${ws.username} disconnected`);
                     history.push(msg);
-                    sendToAll(msg,true);
+                    sendToAll(msg);
                 };
                 sendMemberList();
             });
 
+<<<<<<< HEAD
             function sendToAll(message,enc){
                 console.log(message);
                 if (enc) {
@@ -243,11 +251,17 @@ function hostServer(){
                 }
             }
             members = [];
+=======
+            function sendToAll(message){
+                wss.clients.forEach(ws => ws.send(message))
+            };
+>>>>>>> parent of 3910fac (Update index.js)
             function sendMemberList(){
+                let members = [];
                 wss.clients.forEach(ws => {
-                    members.push({username: ws.username, isHost: ws.isHost, id: ws.id, verified: ws.isVerified})
+                    members.push({username: ws.username, isHost: ws.isHost, id: ws.id})
                 });
-                sendToAll(newMessage('memberList', null, members),false);
+                sendToAll(newMessage('memberList', null, members));
             };
         });
         connectToServer(true);
@@ -293,13 +307,18 @@ function connectToServer(hoster, ip){
         clearTimeout(timeout);
         infoStatus.innerHTML = 'Connected';
         parseMessage(JSON.parse(newMessage('system', 'Local System', `Connected to http://${host}:${port}`)));
+
         clientWs.send(newMessage('data', null, JSON.stringify({username: username.value, isHost: hoster ? true : false}))); //send username and if host to websocket server
     });
 
     clientWs.on('message', message => { //handle incoming message from websocket server
         message = JSON.parse(message);
+<<<<<<< HEAD
         console.log(message);
         console.log(message.type);
+=======
+
+>>>>>>> parent of 3910fac (Update index.js)
         switch (message.type) {
             case 'history': //if receiving chat history
                 message.data.forEach(data => {
@@ -307,6 +326,7 @@ function connectToServer(hoster, ip){
                     parseMessage(data);
                 });
                 break;
+<<<<<<< HEAD
             //Security Subsystem - Sent in Text, so, good to not put in plain text
             case 'ss_ss':
                 console.log("Sent Verification");
@@ -314,6 +334,9 @@ function connectToServer(hoster, ip){
                 clientWs.enc_key = message.data;
                 console.log(message.data);
                 break;
+=======
+
+>>>>>>> parent of 3910fac (Update index.js)
             case 'memberList':
                 memberList.innerHTML = '';
 
@@ -376,6 +399,7 @@ function connectToServer(hoster, ip){
     toggleConnectionBtns(false);
     disconnectBtn.onclick = disconnectAll;
 };
+<<<<<<< HEAD
 function encrypt(message, key) {
     console.log(message);
     console.log(message.length);
@@ -405,6 +429,9 @@ function decrypt(message,key) {
     return decryptedstring;
 
 }
+=======
+
+>>>>>>> parent of 3910fac (Update index.js)
 function setupRecentlyConnected(){
     recentlyConnected = recentlyConnected.filter((server, index, array) => index === array.findIndex(s => s.ipAddress === server.ipAddress));
     recentlyConnected = recentlyConnected.slice(-5);
@@ -569,7 +596,6 @@ function endSearch(ip){
 };
 
 function parseMessage(data){
-    console.log('parsing a message', data, typeof data);
     const timeEm = document.createElement('em');
     timeEm.innerText = data.time;
 
@@ -597,7 +623,6 @@ function trimMessages(){ //caps the chatbox to 100 messages
 };
 
 function newMessage(type, username, data){ //convert this to a constructor maybe someday
-    console.log('creating new message', type, username, data);
     const date = new Date();
     const hours = date.getHours();
     const minutes = date.getMinutes();
