@@ -137,14 +137,14 @@ function hostServer(){
     server = http.createServer((req, res) => {res.end(username.value)}); //ends with host name so network scanning can show host's name
     server.on('error', error => {
         server.close(); 
-        parseMessage(JSON.parse(newMessage('system error', 'Local System', `There was an error hosting the server: ${error}`)));
+        parseMessage(newMessage('system error', 'Local System', `There was an error hosting the server: ${error}`));
         infoStatus.innerHTML = 'Disconnected';
     });
     server.listen(port, host, setupWs);
 
     function setupWs(){ //sets up the websocket server 
         chatBox.innerHTML = '';
-        parseMessage(JSON.parse(newMessage('system', 'Local System', `Server hosted at http://${host}:${port}`)));
+        parseMessage(newMessage('system', 'Local System', `Server hosted at http://${host}:${port}`));
         wss = new WebSocket.Server({
             server: server,
             clientTracking: true
@@ -209,7 +209,7 @@ function connectToServer(hoster, ip){
     searchBox.style.display = 'none';
     searchBox.innerHTML = '';
     infoStatus.innerHTML = 'Connecting';
-    parseMessage(JSON.parse(newMessage('system', 'Local System', `Connecting to ${ip}...`)));
+    parseMessage(newMessage('system', 'Local System', `Connecting to ${ip}...`));
 
     if (!hoster){
         if (!username.value) {
@@ -234,7 +234,7 @@ function connectToServer(hoster, ip){
     let timeout = setTimeout(disconnectAll, 10000); //disconnects websocket if it fails to connect within 10 seconds
 
     clientWs.on('error', error => {
-        parseMessage(JSON.parse(newMessage('system error', 'Local System', `There was an error connecting to the server: ${error}`)));
+        parseMessage(newMessage('system error', 'Local System', `There was an error connecting to the server: ${error}`));
     });
 
     clientWs.on('open', () => {
@@ -242,7 +242,7 @@ function connectToServer(hoster, ip){
 
         clearTimeout(timeout);
         infoStatus.innerHTML = 'Connected';
-        parseMessage(JSON.parse(newMessage('system', 'Local System', `Connected to http://${host}:${port}`)));
+        parseMessage(newMessage('system', 'Local System', `Connected to http://${host}:${port}`));
 
         clientWs.send(newMessage('data', null, JSON.stringify({username: username.value, isHost: hoster ? true : false}))); //send username and if host to websocket server
     });
@@ -253,7 +253,6 @@ function connectToServer(hoster, ip){
         switch (message.type) {
             case 'history': //if receiving chat history
                 message.data.forEach(data => {
-                    data = JSON.parse(data);
                     parseMessage(data);
                 });
                 break;
@@ -285,12 +284,12 @@ function connectToServer(hoster, ip){
                 break;
 
             default: 
-                parseMessage(message);
+                parseMessage(JSON.stringify(message));
         };
     });
 
     clientWs.on('close', () => {
-        parseMessage(JSON.parse(newMessage('system leave', 'Local System', 'Connection closed')));
+        parseMessage(newMessage('system leave', 'Local System', 'Connection closed'));
         toggleConnectionBtns(true);
     });
 
@@ -474,6 +473,7 @@ function endSearch(ip){
 };
 
 function parseMessage(data){
+    data = JSON.parse(data);
     const timeEm = document.createElement('em');
     timeEm.innerText = data.time;
 
