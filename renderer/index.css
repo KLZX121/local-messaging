@@ -7,6 +7,9 @@ section {
 h3 {
     margin: 10px 0;
 }
+button {
+    cursor: pointer;
+}
 #chatBox {
     padding: 10px;
     outline: solid black 1px;
@@ -85,6 +88,7 @@ h3 {
     float: right;
     width: 30px;
     height: 30px;
+    cursor: pointer;
 }
 #settingsContainer {
     display: flex;
