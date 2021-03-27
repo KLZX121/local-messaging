@@ -312,7 +312,7 @@ function connectToServer(hoster, ip){
 
 function setupRecentlyConnected(){
     recentlyConnected = recentlyConnected.filter((server, index, array) => index === array.findIndex(s => s.ipAddress === server.ipAddress));
-    recentlyConnected = recentlyConnected.slice(-5);
+    recentlyConnected = recentlyConnected.slice(0,6);
 
     recentConnections.innerHTML = '';
 
