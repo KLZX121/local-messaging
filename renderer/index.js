@@ -151,6 +151,8 @@ function hostServer(){
         });
         wss.on('connection', (ws, request) => {
 
+            heartbeat(ws);
+
             if (history.length > 0) {
                 ws.send(newMessage('history', null, history)); //send chat history to connected websocket
             };
@@ -187,6 +189,8 @@ function hostServer(){
                     sendToAll(msg);
                 };
                 sendMemberList();
+
+                if (wss.clients.size === 0) {disconnectAll();};
             });
 
             function sendToAll(message){
@@ -307,6 +311,23 @@ function connectToServer(hoster, ip){
 
     toggleConnectionBtns(false);
     disconnectBtn.onclick = disconnectAll;
+};
+
+function heartbeat(websocket){ //setup 'heartbeat' to make sure both sockets are connected
+    let pingCounter = 0;
+
+    const pingPong = () => {
+        if (infoStatus.innerText === 'Disconnected') return;
+        websocket.ping();
+        if (++pingCounter === 5) {
+            websocket.close();
+        } else {
+            setTimeout(pingPong, 3000);
+        };
+    };
+    setTimeout(pingPong, 3000);
+
+    websocket.on('pong', () => pingCounter--);
 };
 
 function setupRecentlyConnected(){
