@@ -163,6 +163,9 @@ function hostServer(){
                 if (JSON.parse(message).type === 'data'){ //save username and if host of the websocket
                     const data = JSON.parse(JSON.parse(message).data);
 
+                    //check if duplicate username
+                    wss.clients.forEach(client => {if (client.username === data.username) data.username += ` [${ws.id}]`;});
+
                     ws.username = data.username;
                     ws.isHost = data.isHost;
 
@@ -171,7 +174,10 @@ function hostServer(){
                     sendToAll(msg);
 
                     sendMemberList(); //updates the connected members list
-                } else{
+                } else {
+                    message = JSON.parse(message);
+                    message.username = ws.username;
+                    message = JSON.stringify(message);
                     history.push(message);
                     sendToAll(message);
                 };
@@ -180,7 +186,7 @@ function hostServer(){
 
             ws.on('close', (code, reason) => {
                 if (reason) {
-                    const msg = newMessage('system leave', 'Global System', `${reason} has left`);
+                    const msg = newMessage('system leave', 'Global System', `${ws.username} has left`);
                     history.push(msg);
                     sendToAll(msg);
                 } else {
@@ -355,7 +361,7 @@ function disconnectAll(){
         wss.close();
         server.close();
     };
-    clientWs.close(1000, username.value);
+    clientWs.close(1000, 'true');
 };
 
 function runSearches(){
