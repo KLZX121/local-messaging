@@ -10,6 +10,11 @@ h3 {
 button {
     cursor: pointer;
 }
+input[type=range] {
+    position: relative;
+    top: 5px;
+    outline: none;
+}
 #chatBox {
     padding: 10px;
     outline: solid black 1px;

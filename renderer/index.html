@@ -88,19 +88,27 @@
                 <h2>Settings</h2>
 
                 <div>
-                    <strong>Username:</strong>
-                    <input type="text" id="username" class="settingsInput" placeholder="Username" maxlength="30">
-                    <button id="saveUsernameBtn" class="settingsInput">Save Username</button>
+                    <h3>General</h3>
+                    <div>
+                        <label for="username">Username:</label>
+                        <input type="text" id="username" class="settingsInput" placeholder="Username" maxlength="30" spellcheck="false">
+                        <button id="saveUsernameBtn" class="settingsInput">Save Username</button>
+                    </div>
+                    <div>
+                        <label for="fontSizeSlider">Font Size:</label>
+                        <input id="fontSizeSlider" type="range" min="0.2" max="2" step="0.2">
+                        <span id="fontSizeDisplay"></span>
+                    </div>
                 </div>
 
                 <div>
                     <h3>Network Scanning</h3>
                     <div id="endWhenFoundDiv">
-                        <label for="endWhenFound" title="Will end the network scan when an open server is found">End search when server found?</label>
+                        <label for="endWhenFound" title="Will end the network scan when an open server is found">End search when server found</label>
                         <input type="checkbox" id="endWhenFound" checked>
                     </div>
                     <div id="joinWhenFoundDiv">
-                        <label for="joinWhenFound" title="Will join the first open server that is found when scanning">Auto-join when server found?</label>
+                        <label for="joinWhenFound" title="Will join the first open server that is found when scanning">Auto-join when server found</label>
                         <input type="checkbox" id="joinWhenFound">
                     </div>
                 </div>

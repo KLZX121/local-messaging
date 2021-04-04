@@ -23,7 +23,6 @@ const hostBtn = g('hostBtn'),
     searchBox = g('searchBox'),
     cancelSearchBtn = g('cancelSearchBtn'),
     endWhenFound = g('endWhenFound'),
-    endWhenFoundDiv = g('endWhenFoundDiv'),
     manualConnect = g('manualConnect'),
     manualConnectBtn = g('manualConnectBtn'),
     manualHost = g('manualHost'),
@@ -31,7 +30,6 @@ const hostBtn = g('hostBtn'),
     memberList = g('memberList'),
     memberListDiv = g('memberListDiv'),
     joinWhenFound = g('joinWhenFound'),
-    joinWhenFoundDiv = g('joinWhenFoundDiv'),
     wifi = g('wifi'),
     recentConnections = g('recentConnections'),
     recentConnectionsDiv = g('recentConnectionsDiv'),
@@ -635,3 +633,13 @@ settingsIcon.onclick = () => settingsContainer.style.display = 'flex';
 settingsContainer.onclick = event => {
     if (event.target === settingsContainer) settingsContainer.style.display = 'none';
 };
+
+!function setupSettings(){
+    const fontSizeSlider = g('fontSizeSlider'),
+        fontSizeDisplay = g('fontSizeDisplay');
+    
+    fontSizeSlider.addEventListener('input', () => {
+        fontSizeDisplay.innerText = `${fontSizeSlider.value * 100}%`;
+        chatBox.style.fontSize = `${0.7 * fontSizeSlider.value}em`;
+    });
+}();

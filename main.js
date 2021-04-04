@@ -34,23 +34,19 @@ function boot(){
             return false;
         });
 
-        const contextMenu = Menu.buildFromTemplate(
-            [
-                { 
-                    label: 'Quit', 
-                    click:  function(){
-                        app.isQuitting = true;
-                        app.quit();
-                    } 
-                },
-                {
-                    label: 'Show DevTools',
-                    click: () => {
-                        win.webContents.openDevTools();
-                    }
-                }
-            ]
-        );
+        const contextMenu = Menu.buildFromTemplate([
+            { 
+                label: 'Quit', 
+                click:  function(){
+                    app.isQuitting = true;
+                    app.quit();
+                } 
+            },
+            {
+                label: 'Show DevTools',
+                click: () => { win.webContents.openDevTools(); }
+            }
+        ]);
         let pinging = false;
 
         const trayImage = nativeImage.createFromPath(path.join(app.getAppPath(),'./imgs/tray.png'));
