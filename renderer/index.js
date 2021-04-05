@@ -6,7 +6,14 @@ const { networkInterfaces } = require('os'); //used to get IP
 const { ipcRenderer} = require('electron');
 
 const Store = require('electron-store');
-const store = new Store();
+const defaults = {
+    recentlyConnected: [],
+    username: null,
+    fontSize: 1,
+    endWhenFound: true,
+    joinWhenFound: false
+}
+const store = new Store({defaults});
 
 const g = document.getElementById.bind(document);
 const hostBtn = g('hostBtn'),
@@ -37,7 +44,8 @@ const hostBtn = g('hostBtn'),
     pingConnectionsBtn = g('pingConnectionsBtn'),
     settingsIcon = g('settingsIcon'),
     settingsContainer = g('settingsContainer'),
-    saveUsernameBtn = g('saveUsernameBtn');
+    fontSizeSlider = g('fontSizeSlider'),
+    fontSizeDisplay = g('fontSizeDisplay');
 
 displayAppVersion();
 setupAutoupdating();
@@ -74,8 +82,6 @@ manualConnectBtn.addEventListener('click', () => {
     connectToServer(false, manualHost.value);
 });
 
-username.value = store.get('username') || `Guest_${generateid(5)}`;
-
 function generateid(length) {
     let result = '';
     const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
@@ -106,14 +112,6 @@ function updateConnection(){
 };
 
 setupRecentlyConnected();
-
-saveUsernameBtn.onclick = () => {
-    if (!username.value){
-        store.set('username', null);
-    } else {
-        store.set('username', username.value);
-    };
-};
 //#endregion
 
 function hostServer(){
@@ -635,11 +633,42 @@ settingsContainer.onclick = event => {
 };
 
 !function setupSettings(){
-    const fontSizeSlider = g('fontSizeSlider'),
-        fontSizeDisplay = g('fontSizeDisplay');
-    
-    fontSizeSlider.addEventListener('input', () => {
+    let settings = store.store;
+
+    applySettings();
+    function applySettings(){
+        settings = store.store;
+
+        username.value = settings.username || `Guest_${generateid(5)}`;
+        fontSizeSlider.value = settings.fontSize;
+        fontSizeDisplay.innerText = `${settings.fontSize * 100}%`;
+        endWhenFound.checked = settings.endWhenFound;
+        joinWhenFound.checked = settings.joinWhenFound;
+        endWhenFound.disabled = joinWhenFound.checked ? true : false;
+    };
+
+    //save settings
+    const saveSettingsBtn = g('saveSettingsBtn'),
+        resetSettingsBtn = g('resetSettingsBtn');
+
+    saveSettingsBtn.onclick = () => {
+        store.set({
+            username: username.value||null,
+            fontSize: fontSizeSlider.value,
+            endWhenFound: endWhenFound.checked,
+            joinWhenFound: joinWhenFound.checked
+        });
+    };
+    resetSettingsBtn.onclick = () => {
+        if (confirm('Reset ALL settings to default?')) {
+            store.clear();
+            applySettings();
+        };
+    };
+
+    //font size
+    fontSizeSlider.oninput = () => {
         fontSizeDisplay.innerText = `${fontSizeSlider.value * 100}%`;
         chatBox.style.fontSize = `${0.7 * fontSizeSlider.value}em`;
-    });
+    };
 }();

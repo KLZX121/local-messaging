@@ -88,11 +88,15 @@
                 <h2>Settings</h2>
 
                 <div>
+                    <button id="saveSettingsBtn" title="Stores settings across sessions - settings will be kept in current session regardless of whether it is saved">Save Settings</button>
+                    <button id="resetSettingsBtn" title="Resets all settings to default">Reset Settings</button>
+                </div>
+
+                <div>
                     <h3>General</h3>
                     <div>
                         <label for="username">Username:</label>
                         <input type="text" id="username" class="settingsInput" placeholder="Username" maxlength="30" spellcheck="false">
-                        <button id="saveUsernameBtn" class="settingsInput">Save Username</button>
                     </div>
                     <div>
                         <label for="fontSizeSlider">Font Size:</label>
@@ -105,7 +109,7 @@
                     <h3>Network Scanning</h3>
                     <div id="endWhenFoundDiv">
                         <label for="endWhenFound" title="Will end the network scan when an open server is found">End search when server found</label>
-                        <input type="checkbox" id="endWhenFound" checked>
+                        <input type="checkbox" id="endWhenFound">
                     </div>
                     <div id="joinWhenFoundDiv">
                         <label for="joinWhenFound" title="Will join the first open server that is found when scanning">Auto-join when server found</label>
