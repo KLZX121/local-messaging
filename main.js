@@ -23,9 +23,12 @@ function boot(){
     win.webContents.on('did-finish-load', () => win.show());
     ipcMain.on('autoUpdateCheck', setupAutoupdate);
 
-    setupTray();
+    setupNotifs();
 
-    function setupTray(){
+    function setupNotifs(){
+        let doFlashFrame = true;
+        ipcMain.on('flashFrame', (event, flashFrame) => doFlashFrame = flashFrame);
+
         win.on('close', function (event) {
             if (!app.isQuitting){
                 event.preventDefault();
@@ -58,14 +61,14 @@ function boot(){
         const pingImage = nativeImage.createFromPath(path.join(app.getAppPath(), './imgs/notif.png'));
         ipcMain.on('ping', () => {
             if (!win.isFocused() && !pinging){
-                win.flashFrame(true);
+                if (doFlashFrame) win.flashFrame(true);
                 tray.setImage(pingImage);
                 pinging = true;
             };
         });
         win.on('focus', () => {
             if (pinging){
-                win.flashFrame(false);
+                if (doFlashFrame) win.flashFrame(false);
                 tray.setImage(trayImage);
                 pinging = false;
             };

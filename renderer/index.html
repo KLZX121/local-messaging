@@ -104,20 +104,28 @@
                         <span id="fontSizeDisplay"></span>
                     </div>
                     <div>
-                        <label for="autoStart">Boot app on computer start-up</label>
+                        <label for="autoStart" title="Save settings to take effect">Boot app on computer start-up</label>
                         <input type="checkbox" id="autoStart">
                     </div>
                 </div>
 
                 <div>
                     <h3>Network Scanning</h3>
-                    <div id="endWhenFoundDiv">
+                    <div>
                         <label for="endWhenFound" title="Will end the network scan when an open server is found">End search when server found</label>
                         <input type="checkbox" id="endWhenFound">
                     </div>
-                    <div id="joinWhenFoundDiv">
+                    <div>
                         <label for="joinWhenFound" title="Will join the first open server that is found when scanning">Auto-join when server found</label>
                         <input type="checkbox" id="joinWhenFound">
+                    </div>
+                </div>
+
+                <div>
+                    <h3>Notifications</h3>
+                    <div>
+                        <label for="flashFrame">Taskbar icon flashing</label>
+                        <input type="checkbox" id="flashFrame">
                     </div>
                 </div>
             </div>

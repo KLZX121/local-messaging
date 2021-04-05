@@ -12,7 +12,8 @@ const defaults = {
     fontSize: 1,
     autoStart: false,
     endWhenFound: true,
-    joinWhenFound: false
+    joinWhenFound: false,
+    flashFrame: true
 }
 const store = new Store({defaults});
 
@@ -47,7 +48,8 @@ const hostBtn = g('hostBtn'),
     settingsContainer = g('settingsContainer'),
     fontSizeSlider = g('fontSizeSlider'),
     fontSizeDisplay = g('fontSizeDisplay'),
-    autoStart = g('autoStart');
+    autoStart = g('autoStart'),
+    flashFrame = g('flashFrame')
 
 displayAppVersion();
 setupAutoupdating();
@@ -648,6 +650,8 @@ settingsContainer.onclick = event => {
         joinWhenFound.checked = settings.joinWhenFound;
         endWhenFound.disabled = joinWhenFound.checked ? true : false;
         autoStart.checked = settings.autoStart;
+        flashFrame.checked = settings.flashFrame;
+        ipcRenderer.send('flashFrame', flashFrame.checked);
     };
 
     //save settings
@@ -660,7 +664,8 @@ settingsContainer.onclick = event => {
             fontSize: fontSizeSlider.value,
             autoStart: autoStart.checked,
             endWhenFound: endWhenFound.checked,
-            joinWhenFound: joinWhenFound.checked
+            joinWhenFound: joinWhenFound.checked,
+            flashFrame: flashFrame.checked
         });
         ipcRenderer.send('autoStart', autoStart.checked);
     };
@@ -676,4 +681,7 @@ settingsContainer.onclick = event => {
         fontSizeDisplay.innerText = `${fontSizeSlider.value * 100}%`;
         chatBox.style.fontSize = `${0.7 * fontSizeSlider.value}em`;
     };
+
+    //flash frame
+    flashFrame.oninput = () => ipcRenderer.send('flashFrame', flashFrame.checked);
 }();

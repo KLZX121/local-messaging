@@ -31,17 +31,16 @@ add kick and ban option to member list (host)
 embedded games? 
 - tic tac toe, chess etc
 
-settings (save all these in electorn-store)
+settings (save all these in electron-store)
 - chatbox message cap
 - search configs
 - auto-searching
 - manual/automatic recently connected pinging
 - message input char limit
 - dark mode
-- clear storage
 =========IMPROVEMENTS=========
 
-set header thingy when requests and stuff to authenticate
+add encryption
 
 clear chat button (with how much to clear)
 
