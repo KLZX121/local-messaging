@@ -104,3 +104,5 @@ function boot(){
 
 app.on('ready', boot);
 app.on('before-quit', () => tray.destroy());
+
+ipcMain.on('autoStart', (event, autoStart) => app.setLoginItemSettings({openAtLogin: autoStart}));

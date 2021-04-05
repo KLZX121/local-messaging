@@ -10,6 +10,7 @@ const defaults = {
     recentlyConnected: [],
     username: null,
     fontSize: 1,
+    autoStart: false,
     endWhenFound: true,
     joinWhenFound: false
 }
@@ -45,7 +46,8 @@ const hostBtn = g('hostBtn'),
     settingsIcon = g('settingsIcon'),
     settingsContainer = g('settingsContainer'),
     fontSizeSlider = g('fontSizeSlider'),
-    fontSizeDisplay = g('fontSizeDisplay');
+    fontSizeDisplay = g('fontSizeDisplay'),
+    autoStart = g('autoStart');
 
 displayAppVersion();
 setupAutoupdating();
@@ -645,6 +647,7 @@ settingsContainer.onclick = event => {
         endWhenFound.checked = settings.endWhenFound;
         joinWhenFound.checked = settings.joinWhenFound;
         endWhenFound.disabled = joinWhenFound.checked ? true : false;
+        autoStart.checked = settings.autoStart;
     };
 
     //save settings
@@ -655,9 +658,11 @@ settingsContainer.onclick = event => {
         store.set({
             username: username.value||null,
             fontSize: fontSizeSlider.value,
+            autoStart: autoStart.checked,
             endWhenFound: endWhenFound.checked,
             joinWhenFound: joinWhenFound.checked
         });
+        ipcRenderer.send('autoStart', autoStart.checked);
     };
     resetSettingsBtn.onclick = () => {
         if (confirm('Reset ALL settings to default?')) {
