@@ -645,6 +645,7 @@ settingsContainer.onclick = event => {
 
         username.value = settings.username || `Guest_${generateid(5)}`;
         fontSizeSlider.value = settings.fontSize;
+        chatBox.style.fontSize = `${0.7 * fontSizeSlider.value}em`;
         fontSizeDisplay.innerText = `${settings.fontSize * 100}%`;
         endWhenFound.checked = settings.endWhenFound;
         joinWhenFound.checked = settings.joinWhenFound;
