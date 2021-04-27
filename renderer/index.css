@@ -110,7 +110,7 @@ input[type=range] {
 #settingsDiv {
     width: 300px;
     height: auto;
-    background-color: white;
+    background-color: rgba(255, 255, 255, 0.7);
     padding: 10px;
     border-radius: 10px;
     font-size: 0.9em;
