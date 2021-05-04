@@ -8,7 +8,7 @@ const { ipcRenderer} = require('electron');
 const Store = require('electron-store');
 const defaults = {
     recentlyConnected: [],
-    username: null,
+    username: false,
     fontSize: 1,
     autoStart: false,
     endWhenFound: true,
@@ -661,7 +661,7 @@ settingsContainer.onclick = event => {
 
     saveSettingsBtn.onclick = () => {
         store.set({
-            username: username.value||null,
+            username: username.value || false,
             fontSize: fontSizeSlider.value,
             autoStart: autoStart.checked,
             endWhenFound: endWhenFound.checked,
@@ -672,7 +672,7 @@ settingsContainer.onclick = event => {
     };
     resetSettingsBtn.onclick = () => {
         if (confirm('Reset ALL settings to default?')) {
-            store.clear();
+            store.reset(...Object.keys(defaults).filter(key => key !== 'recentlyConnected'));
             applySettings();
         };
     };
