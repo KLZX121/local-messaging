@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Menu, Tray, ipcMain, nativeImage } = require('electron');
+const { app, BrowserWindow, Menu, Tray, ipcMain, nativeImage, Notification } = require('electron');
 const path = require('path');
 const { autoUpdater } = require('electron-updater');
 const Store = require('electron-store');
@@ -9,11 +9,13 @@ Menu.setApplicationMenu(null);
 let tray;
 
 function boot(){
+    const icon = nativeImage.createFromPath(path.join(app.getAppPath(),'./imgs/tray.png'));
     const win = new BrowserWindow({
         width: 400,
         height: 600,
         show: false,
         title: 'Local Messaging',
+        icon: icon,
         webPreferences: {
             nodeIntegration: true,
             enableRemoteModule: true
@@ -51,26 +53,35 @@ function boot(){
             }
         ]);
         let pinging = false;
+        let notif = new Notification({icon, title: 'Local Messaging', body: ''});
 
-        const trayImage = nativeImage.createFromPath(path.join(app.getAppPath(),'./imgs/tray.png'));
-        tray = new Tray(trayImage);
+        tray = new Tray(icon);
         tray.setToolTip('Right click for options');
         tray.setContextMenu(contextMenu);
         tray.on('click', () => win.show());
 
         const pingImage = nativeImage.createFromPath(path.join(app.getAppPath(), './imgs/notif.png'));
-        ipcMain.on('ping', () => {
+
+        ipcMain.on('ping', (event, body) => {
             if (!win.isFocused() && !pinging){
                 if (doFlashFrame) win.flashFrame(true);
                 tray.setImage(pingImage);
+
+                if (body){
+                    notif.close();
+                    notif.body = body;
+                    notif.show();
+                };
+                
                 pinging = true;
             };
         });
         win.on('focus', () => {
             if (pinging){
                 if (doFlashFrame) win.flashFrame(false);
-                tray.setImage(trayImage);
+                tray.setImage(icon);
                 pinging = false;
+                notif.close();
             };
         });
     };

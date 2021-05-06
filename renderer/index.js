@@ -215,7 +215,7 @@ function hostServer(){
 };
 
 function connectToServer(hoster, ip){
-    if (searching) endSearch();
+    if (searching) endSearch(true);
     searchBox.style.display = 'none';
     searchBox.innerHTML = '';
     infoStatus.innerHTML = 'Connecting';
@@ -497,6 +497,7 @@ function endSearch(ip){
     }, 100);
 
     if (typeof ip === 'string') connectToServer(false, ip);
+    if (!ip) ipcRenderer.send('ping', 'Server found')
 };
 
 function parseMessage(data){
@@ -518,7 +519,7 @@ function parseMessage(data){
     scrollDown();
     trimMessages();
     
-    ipcRenderer.send('ping', true);
+    ipcRenderer.send('ping', `${data.username}: ${data.data}`);
 };
 
 function trimMessages(){ //caps the chatbox to 100 messages
