@@ -394,7 +394,7 @@ function runSearches(){
                 if (!halt) searchProgress.value += 0.1;
                 search(min + 25, max + 25);
             } else {
-                ipcRenderer.send('ping', true);
+                ipcRenderer.send('ping', `Finished Scan - ${searchBox.children.length} server${searchBox.children.length === 1 ? '' : 's'} found`);
                 setSearchStatus('Finished Scan');
                 toggleSearchBtns(true);
                 searching = false;
