@@ -394,7 +394,7 @@ function runSearches(){
                 if (!halt) searchProgress.value += 0.1;
                 search(min + 25, max + 25);
             } else {
-                ipcRenderer.send('ping', `Finished Scan - ${searchBox.children.length} server${searchBox.children.length === 1 ? '' : 's'} found`);
+                sendNotif(`Finished Scan - ${searchBox.children.length} server${searchBox.children.length === 1 ? '' : 's'} found`);
                 setSearchStatus('Finished Scan');
                 toggleSearchBtns(true);
                 searching = false;
@@ -497,7 +497,7 @@ function endSearch(ip){
     }, 100);
 
     if (typeof ip === 'string') connectToServer(false, ip);
-    if (!ip) ipcRenderer.send('ping', 'Server found')
+    if (!ip) sendNotif('Server found');
 };
 
 function parseMessage(data){
@@ -519,7 +519,7 @@ function parseMessage(data){
     scrollDown();
     trimMessages();
     
-    ipcRenderer.send('ping', `${data.username}: ${data.data}`);
+    sendNotif(`${data.username}: ${data.data}`);
 };
 
 function trimMessages(){ //caps the chatbox to 100 messages
@@ -687,3 +687,11 @@ settingsContainer.onclick = event => {
     //flash frame
     flashFrame.oninput = () => ipcRenderer.send('flashFrame', flashFrame.checked);
 }();
+
+function sendNotif(body) {
+    if (!document.hasFocus()){
+        ipcRenderer.send('ping', null);
+        let notif = new Notification('Local Messaging', { icon: '../imgs/tray.png', body, tag: 'ping' });
+        window.onfocus = () => notif.close();
+    };
+};

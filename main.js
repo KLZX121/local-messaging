@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Menu, Tray, ipcMain, nativeImage, Notification } = require('electron');
+const { app, BrowserWindow, Menu, Tray, ipcMain, nativeImage } = require('electron');
 const path = require('path');
 const { autoUpdater } = require('electron-updater');
 const Store = require('electron-store');
@@ -12,7 +12,7 @@ function boot(){
     const icon = nativeImage.createFromPath(path.join(app.getAppPath(),'./imgs/tray.png'));
     const win = new BrowserWindow({
         width: 400,
-        height: 600,
+        height: 610,
         show: false,
         title: 'Local Messaging',
         icon: icon,
@@ -53,7 +53,6 @@ function boot(){
             }
         ]);
         let pinging = false;
-        let notif = new Notification({icon, title: 'Local Messaging', body: ''});
 
         tray = new Tray(icon);
         tray.setToolTip('Right click for options');
@@ -62,16 +61,10 @@ function boot(){
 
         const pingImage = nativeImage.createFromPath(path.join(app.getAppPath(), './imgs/notif.png'));
 
-        ipcMain.on('ping', (event, body) => {
-            if (!win.isFocused() && !pinging){
+        ipcMain.on('ping', () => {
+            if (!pinging){
                 if (doFlashFrame) win.flashFrame(true);
                 tray.setImage(pingImage);
-
-                if (body){
-                    notif.close();
-                    notif.body = body;
-                    notif.show();
-                };
                 
                 pinging = true;
             };
@@ -81,7 +74,6 @@ function boot(){
                 if (doFlashFrame) win.flashFrame(false);
                 tray.setImage(icon);
                 pinging = false;
-                notif.close();
             };
         });
     };

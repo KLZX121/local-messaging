@@ -28,8 +28,13 @@ ping people - force notficiation ( or add settings )
 
 add kick and ban option to member list (host)
 
-embedded games? 
-- tic tac toe, chess etc
+commands (<> format?):
+embedded games
+- tic tac toe, chess etc CONNECT 4?
+utility
+- timer/stopwatch
+- coinflip
+- hyperlink
 
 settings (save all these in electron-store)
 - chatbox message cap
@@ -38,6 +43,12 @@ settings (save all these in electron-store)
 - manual/automatic recently connected pinging
 - message input char limit
 - dark mode
+- search/host on startup
+- release notes
+
+antispam
+
+network scan when hosted
 =========IMPROVEMENTS=========
 
 add encryption
