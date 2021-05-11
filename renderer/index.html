@@ -18,7 +18,7 @@
 
             <span id="appVersion"></span>
 
-            <div id="autoUpdateStatus" style="color: orange;"></div>
+            <div id="autoUpdateStatus" style="color: orange;">Checking for updates...</div>
 
         </section>
         
@@ -126,6 +126,15 @@
                     <div>
                         <label for="flashFrame">Taskbar icon flashing</label>
                         <input type="checkbox" id="flashFrame">
+                    </div>
+                    <div>
+                        <label for="toastNotif">System notifications</label>
+                        <select id="toastNotif">
+                            <option value="all">All</option>
+                            <option value="networkScan">Network scan only</option>
+                            <option value="msg">Messages Only</option>
+                            <option value="none">None</option>
+                        </select>
                     </div>
                 </div>
             </div>

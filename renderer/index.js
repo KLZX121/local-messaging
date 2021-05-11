@@ -13,7 +13,8 @@ const defaults = {
     autoStart: false,
     endWhenFound: true,
     joinWhenFound: false,
-    flashFrame: true
+    flashFrame: true,
+    toastNotif: 'all'
 }
 const store = new Store({defaults});
 
@@ -49,7 +50,8 @@ const hostBtn = g('hostBtn'),
     fontSizeSlider = g('fontSizeSlider'),
     fontSizeDisplay = g('fontSizeDisplay'),
     autoStart = g('autoStart'),
-    flashFrame = g('flashFrame')
+    flashFrame = g('flashFrame'),
+    toastNotif = g('toastNotif')
 
 displayAppVersion();
 setupAutoupdating();
@@ -394,7 +396,7 @@ function runSearches(){
                 if (!halt) searchProgress.value += 0.1;
                 search(min + 25, max + 25);
             } else {
-                sendNotif(`Finished Scan - ${searchBox.children.length} server${searchBox.children.length === 1 ? '' : 's'} found`);
+                if (toastNotif.value !== 'msg') sendNotif(`Finished Scan - ${searchBox.children.length} server${searchBox.children.length === 1 ? '' : 's'} found`);
                 setSearchStatus('Finished Scan');
                 toggleSearchBtns(true);
                 searching = false;
@@ -497,7 +499,7 @@ function endSearch(ip){
     }, 100);
 
     if (typeof ip === 'string') connectToServer(false, ip);
-    if (!ip) sendNotif('Server found');
+    if (!ip && toastNotif.value !== 'msg') sendNotif('Server found');
 };
 
 function parseMessage(data){
@@ -519,7 +521,7 @@ function parseMessage(data){
     scrollDown();
     trimMessages();
     
-    sendNotif(`${data.username}: ${data.data}`);
+    if (toastNotif.value !== 'networkScan') sendNotif(`${data.username}: ${data.data}`);
 };
 
 function trimMessages(){ //caps the chatbox to 100 messages
@@ -654,6 +656,7 @@ settingsContainer.onclick = event => {
         autoStart.checked = settings.autoStart;
         flashFrame.checked = settings.flashFrame;
         ipcRenderer.send('flashFrame', flashFrame.checked);
+        toastNotif.value = settings.toastNotif;
     };
 
     //save settings
@@ -667,7 +670,8 @@ settingsContainer.onclick = event => {
             autoStart: autoStart.checked,
             endWhenFound: endWhenFound.checked,
             joinWhenFound: joinWhenFound.checked,
-            flashFrame: flashFrame.checked
+            flashFrame: flashFrame.checked,
+            toastNotif: toastNotif.value
         });
         ipcRenderer.send('autoStart', autoStart.checked);
     };
@@ -688,10 +692,14 @@ settingsContainer.onclick = event => {
     flashFrame.oninput = () => ipcRenderer.send('flashFrame', flashFrame.checked);
 }();
 
+let notif;
 function sendNotif(body) {
-    if (!document.hasFocus()){
+    if (!document.hasFocus() && toastNotif.value !== 'none'){
         ipcRenderer.send('ping', null);
-        let notif = new Notification('Local Messaging', { icon: '../imgs/tray.png', body, tag: 'ping' });
+
+        if (notif) notif.close();
+        notif = new Notification('Local Messaging', { icon: '../imgs/tray.png', body });
+
         window.onfocus = () => notif.close();
     };
 };

@@ -2,8 +2,6 @@
 
 add markdown support
 
-TOAST notifications
-
 Multi-line input
 
 DynDNS / Bonjour-style discovery
@@ -12,8 +10,6 @@ https://www.npmjs.com/package/bonjour
 
 More efficient IP scanning
 - https://nodejs.org/api/worker_threads.html
-
-toggle notifications setting
 
 upload images to chat
 - https://www.electronjs.org/docs/api/native-image use this to send as string
