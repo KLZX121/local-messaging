@@ -58,6 +58,7 @@ input[type=range] {
 }
 .connectionName {
     color: grey;
+    margin-left: 5px;
 }
 #controlPanel {
     margin: 10px 0;
@@ -123,4 +124,11 @@ input[type=range] {
 }
 #settingsDiv h3 {
     margin-bottom: 0;
+}
+.userStatus {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 5px;
+    background-color: lightgrey;
 }

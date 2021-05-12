@@ -14,10 +14,6 @@ More efficient IP scanning
 upload images to chat
 - https://www.electronjs.org/docs/api/native-image use this to send as string
 
-connection list
-- typing?
-- window focused?
-
 edit messages feature
 
 ping people - force notficiation ( or add settings )

@@ -61,6 +61,22 @@ let halt = false;
 let searching = false;
 const port = 121;
 let recentlyConnected = store.get('recentlyConnected') || [];
+const status = {
+    isTypingValue: false,
+    previousValue: false,
+    set isTyping(value){
+
+        this.isTypingValue = value;
+
+        if (this.previousValue !== this.isTypingValue) {
+            messageInput.dispatchEvent(new Event('typing'));
+            this.previousValue = this.isTypingValue;
+        };
+    },
+    get isTyping(){
+        return this.isTypingValue;
+    }
+};
 
 document.addEventListener('keydown', event => {
     if (event.key !== 'Enter') return;
@@ -162,26 +178,29 @@ function hostServer(){
             ws.send(newMessage('data', null, ws.id)); //assigns an id to the websocket
 
             ws.on('message', message => { //handle incoming message from websocket
-                if (JSON.parse(message).type === 'data'){ //save username and if host of the websocket
-                    const data = JSON.parse(JSON.parse(message).data);
+                message = JSON.parse(message);
+                switch(message.type) {
 
-                    //check if duplicate username
-                    wss.clients.forEach(client => {if (client.username === data.username) data.username += ` [${ws.id}]`;});
+                    case 'data': //save username and if host of the websocket
+                        const data = JSON.parse(message.data);
 
-                    ws.username = data.username;
-                    ws.isHost = data.isHost;
+                        //check if duplicate username
+                        wss.clients.forEach(client => {if (client.username === data.username) data.username += ` [${ws.id}]`;});
 
-                    const msg = newMessage('system join', 'Global System', `${ws.username}${ws.isHost ? ' (host)' : ''} has joined`);
-                    history.push(msg);
-                    sendToAll(msg);
+                        ws.username = data.username;
+                        ws.isHost = data.isHost;
 
-                    sendMemberList(); //updates the connected members list
-                } else {
-                    message = JSON.parse(message);
-                    message.username = ws.username;
-                    message = JSON.stringify(message);
-                    history.push(message);
-                    sendToAll(message);
+                        const msg = newMessage('system join', 'Global System', `${ws.username}${ws.isHost ? ' (host)' : ''} has joined`);
+                        history.push(msg);
+                        sendToAll(msg);
+
+                        sendMemberList(); //updates the connected members list
+                        break;
+
+                    default:
+                        message.username = ws.username;
+                        if (message.type !== 'status') history.push(JSON.stringify(message));
+                        sendToAll(JSON.stringify(message));
                 };
                 history = history.slice(-100); //trims chat history to the latest 100
             });
@@ -202,7 +221,7 @@ function hostServer(){
             });
 
             function sendToAll(message){
-                wss.clients.forEach(ws => ws.send(message))
+                wss.clients.forEach(ws => ws.send(message));
             };
             function sendMemberList(){
                 let members = [];
@@ -243,6 +262,15 @@ function connectToServer(hoster, ip){
 
     clientWs = new WebSocket(`http://${host}:${port}`);
 
+    if (!messageInput.getAttribute('listener')) {
+        messageInput.setAttribute('listener', 'true')
+        messageInput.addEventListener('typing', () => {
+            if (clientWs.readyState !== 1) return;
+
+            clientWs.send(newMessage('status', username.value, JSON.stringify({id: clientWs.id, isTyping: status.isTyping})))
+        });
+    };
+
     let timeout = setTimeout(disconnectAll, 10000); //disconnects websocket if it fails to connect within 10 seconds
 
     clientWs.on('error', error => {
@@ -264,9 +292,7 @@ function connectToServer(hoster, ip){
 
         switch (message.type) {
             case 'history': //if receiving chat history
-                message.data.forEach(data => {
-                    parseMessage(data);
-                });
+                message.data.forEach(data => parseMessage(data));
                 break;
 
             case 'memberList':
@@ -277,7 +303,12 @@ function connectToServer(hoster, ip){
                     usernameSpan.setAttribute('class', 'connectionName');
                     usernameSpan.textContent = member.username;
 
+                    const statusDiv = document.createElement('div'); //creates the span which shows if they are typing
+                    statusDiv.setAttribute('class', 'userStatus');
+
                     const mainDiv = document.createElement('div');
+                    mainDiv.setAttribute('id', member.id);
+                    mainDiv.appendChild(statusDiv);
                     mainDiv.appendChild(usernameSpan);
                     mainDiv.innerHTML += `${member.isHost ? ' (host)' : ''}${member.id === clientWs.id ? ' (you)' : ''}`;
 
@@ -295,6 +326,17 @@ function connectToServer(hoster, ip){
                 clientWs.id = message.data;
                 break;
 
+            case 'status': //displays info in member list like if they're typing
+                let data = JSON.parse(message.data);
+
+                for (let element of document.getElementsByClassName('userStatus')){
+                    if (parseInt(element.parentElement.id) === data.id) {
+                        element.style.backgroundColor = data.isTyping ? 'limegreen' : 'lightgrey';
+                        break;
+                    };
+                };
+                break;
+
             default: 
                 parseMessage(JSON.stringify(message));
         };
@@ -308,12 +350,14 @@ function connectToServer(hoster, ip){
     document.onkeydown = sendMessage;
     sendMessageBtn.onclick = sendMessage;
 
+    const messageSendEvent = new Event('messageSent');
     function sendMessage(event) { //send message to websocket server
         if (event.type === 'keydown' && (event.key !== 'Enter' || document.activeElement !== messageInput)) return;
         
         if (clientWs.readyState === 1 && messageInput.value.trim().length > 0){
-            clientWs.send(newMessage('message', username.value || 'Guest', messageInput.value.trim()));
+            clientWs.send(newMessage('message', username.value, messageInput.value.trim()));
             messageInput.value = '';
+            messageInput.dispatchEvent(messageSendEvent);
         };
     };
 
@@ -697,9 +741,26 @@ function sendNotif(body) {
     if (!document.hasFocus() && toastNotif.value !== 'none'){
         ipcRenderer.send('ping', null);
 
-        if (notif) notif.close();
+        if (notif) notif.close(); //close the previous notification
         notif = new Notification('Local Messaging', { icon: '../imgs/tray.png', body });
 
         window.onfocus = () => notif.close();
     };
 };
+
+!function checkIfTyping(){
+    let id;
+
+    messageInput.addEventListener('input', () => { //listen for input on the messageInput element
+        if (messageInput.value.length === 0) return;
+
+        clearTimeout(id);
+        status.isTyping = true
+
+        id = setTimeout(() => status.isTyping = false, 3000);
+    });
+    messageInput.addEventListener('messageSent', () => { //listen for when message is sent and reduce time to 1 second 
+        clearTimeout(id);
+        id = setTimeout(() => status.isTyping = false, 1000);
+    });
+}();
