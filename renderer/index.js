@@ -202,7 +202,7 @@ function hostServer(){
                     default:
                         message.username = ws.username;
                         sendToAll(JSON.stringify(message));
-                        
+
                         if (message.type === 'status') {
                             ws.status = JSON.parse(message.data);
                         } else {
@@ -760,12 +760,15 @@ function sendNotif(body) {
     let id;
 
     messageInput.addEventListener('input', () => { //listen for input on the messageInput element
-        if (messageInput.value.length === 0) return;
+        if (messageInput.value.length === 0) {
+            clearTimeout(id);
+            id = setTimeout(() => status.isTyping = false, 1000);
+        } else {
+            clearTimeout(id);
+            status.isTyping = true
 
-        clearTimeout(id);
-        status.isTyping = true
-
-        id = setTimeout(() => status.isTyping = false, 3000);
+            id = setTimeout(() => status.isTyping = false, 3000);
+        };
     });
     messageInput.addEventListener('messageSent', () => { //listen for when message is sent and reduce time to 1 second 
         clearTimeout(id);
