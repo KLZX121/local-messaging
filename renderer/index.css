@@ -1,5 +1,5 @@
 * {
-    font-family: 'Calibri Light';
+    font-family: 'Calibri Light', sans-serif;
 }
 section {
     margin: 5px;
@@ -131,4 +131,12 @@ input[type=range] {
     height: 10px;
     border-radius: 5px;
     background-color: lightgrey;
+}
+.you {
+    font-weight: bold;
+}
+.host {
+    color: dodgerblue;
+    margin-left: 5px;
+    font-weight: bold;
 }

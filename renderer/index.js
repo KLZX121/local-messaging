@@ -307,7 +307,7 @@ function connectToServer(hoster, ip){
 
                 message.data.forEach(member => {
                     const usernameSpan = document.createElement('span');
-                    usernameSpan.setAttribute('class', 'connectionName');
+                    usernameSpan.setAttribute('class', `connectionName ${member.id === clientWs.id ? 'you' : ''}`);
                     usernameSpan.textContent = member.username;
 
                     const statusDiv = document.createElement('div'); //creates the span which shows if they are typing
@@ -316,9 +316,14 @@ function connectToServer(hoster, ip){
 
                     const mainDiv = document.createElement('div');
                     mainDiv.setAttribute('id', member.id);
-                    mainDiv.appendChild(statusDiv);
-                    mainDiv.appendChild(usernameSpan);
-                    mainDiv.innerHTML += `${member.isHost ? ' (host)' : ''}${member.id === clientWs.id ? ' (you)' : ''}`;
+                    mainDiv.append(statusDiv, usernameSpan);
+
+                    if (member.isHost) {
+                        const hostSpan = document.createElement('span');
+                        hostSpan.setAttribute('class','host');
+                        hostSpan.innerText = 'HOST';
+                        mainDiv.appendChild(hostSpan)
+                    }
 
                     memberList.appendChild(mainDiv);
 
