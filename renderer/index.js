@@ -200,7 +200,7 @@ function hostServer(){
                         break;
 
                     default:
-                        message.username = ws.username;
+                        typeof message.username === 'number' ? null : message.username = ws.username;
                         sendToAll(JSON.stringify(message));
 
                         if (message.type === 'status') {
@@ -274,7 +274,7 @@ function connectToServer(hoster, ip){
         messageInput.addEventListener('typing', () => {
             if (clientWs.readyState !== 1) return;
 
-            clientWs.send(newMessage('status', username.value, JSON.stringify({id: clientWs.id, isTyping: status.isTyping})))
+            clientWs.send(newMessage('status', clientWs.id, JSON.stringify({isTyping: status.isTyping})))
         });
     };
 
@@ -338,7 +338,7 @@ function connectToServer(hoster, ip){
                 let data = JSON.parse(message.data);
 
                 for (let element of document.getElementsByClassName('userStatus')){
-                    if (parseInt(element.parentElement.id) === data.id) {
+                    if (parseInt(element.parentElement.id) === message.username) {
                         element.style.backgroundColor = data.isTyping ? 'limegreen' : 'lightgrey';
                         break;
                     };
@@ -363,7 +363,7 @@ function connectToServer(hoster, ip){
         if (event.type === 'keydown' && (event.key !== 'Enter' || document.activeElement !== messageInput)) return;
         
         if (clientWs.readyState === 1 && messageInput.value.trim().length > 0){
-            clientWs.send(newMessage('message', username.value, messageInput.value.trim()));
+            clientWs.send(newMessage('message', null, messageInput.value.trim()));
             messageInput.value = '';
             messageInput.dispatchEvent(messageSendEvent);
         };
