@@ -742,7 +742,7 @@ function sendNotif(body) {
         ipcRenderer.send('ping', null);
 
         if (notif) notif.close(); //close the previous notification
-        notif = new Notification('Local Messaging', { icon: '../imgs/tray.png', body });
+        notif = new Notification('Local Messaging', { icon: '../imgs/tray.png', body, silent: true });
 
         window.onfocus = () => notif.close();
     };
