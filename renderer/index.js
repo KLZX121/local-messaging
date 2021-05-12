@@ -175,6 +175,8 @@ function hostServer(){
                 ws.send(newMessage('history', null, history)); //send chat history to connected websocket
             };
             ws.id = wsId++;
+            ws.status = {};
+
             ws.send(newMessage('data', null, ws.id)); //assigns an id to the websocket
 
             ws.on('message', message => { //handle incoming message from websocket
@@ -199,8 +201,13 @@ function hostServer(){
 
                     default:
                         message.username = ws.username;
-                        if (message.type !== 'status') history.push(JSON.stringify(message));
                         sendToAll(JSON.stringify(message));
+                        
+                        if (message.type === 'status') {
+                            ws.status = JSON.parse(message.data);
+                        } else {
+                            history.push(JSON.stringify(message));
+                        }
                 };
                 history = history.slice(-100); //trims chat history to the latest 100
             });
@@ -226,7 +233,7 @@ function hostServer(){
             function sendMemberList(){
                 let members = [];
                 wss.clients.forEach(ws => {
-                    members.push({username: ws.username, isHost: ws.isHost, id: ws.id})
+                    members.push({username: ws.username, isHost: ws.isHost, id: ws.id, status: ws.status})
                 });
                 sendToAll(newMessage('memberList', null, members));
             };
@@ -305,6 +312,7 @@ function connectToServer(hoster, ip){
 
                     const statusDiv = document.createElement('div'); //creates the span which shows if they are typing
                     statusDiv.setAttribute('class', 'userStatus');
+                    statusDiv.style.backgroundColor = member.status.isTyping ? 'limegreen' : 'lightgrey';
 
                     const mainDiv = document.createElement('div');
                     mainDiv.setAttribute('id', member.id);
