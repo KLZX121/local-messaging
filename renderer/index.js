@@ -310,9 +310,13 @@ function connectToServer(hoster, ip){
                     usernameSpan.setAttribute('class', `connectionName ${member.id === clientWs.id ? 'you' : ''}`);
                     usernameSpan.textContent = member.username;
 
-                    const statusDiv = document.createElement('div'); //creates the span which shows if they are typing
+                    const statusDiv = document.createElement('div');
                     statusDiv.setAttribute('class', 'userStatus');
-                    statusDiv.style.backgroundColor = member.status.isTyping ? 'limegreen' : 'lightgrey';
+
+                    const typingIndicator = document.createElement('span');
+                    typingIndicator.setAttribute('class', 'typingIndicator');
+                    typingIndicator.innerText = ' typing...';
+                    typingIndicator.style.display = member.status.isTyping ? 'inline' : 'none';
 
                     const mainDiv = document.createElement('div');
                     mainDiv.setAttribute('id', member.id);
@@ -323,7 +327,9 @@ function connectToServer(hoster, ip){
                         hostSpan.setAttribute('class','host');
                         hostSpan.innerText = 'HOST';
                         mainDiv.appendChild(hostSpan)
-                    }
+                    };
+
+                    mainDiv.appendChild(typingIndicator);
 
                     memberList.appendChild(mainDiv);
 
@@ -342,9 +348,9 @@ function connectToServer(hoster, ip){
             case 'status': //displays info in member list like if they're typing
                 let data = JSON.parse(message.data);
 
-                for (let element of document.getElementsByClassName('userStatus')){
+                for (let element of document.getElementsByClassName('typingIndicator')){
                     if (parseInt(element.parentElement.id) === message.username) {
-                        element.style.backgroundColor = data.isTyping ? 'limegreen' : 'lightgrey';
+                        element.style.display = data.isTyping ? 'inline' : 'none';
                         break;
                     };
                 };
