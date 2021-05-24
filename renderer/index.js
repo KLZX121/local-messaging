@@ -63,18 +63,27 @@ const port = 121;
 let recentlyConnected = store.get('recentlyConnected') || [];
 const status = {
     isTypingValue: false,
-    previousValue: false,
     set isTyping(value){
 
-        this.isTypingValue = value;
-
-        if (this.previousValue !== this.isTypingValue) {
+        if (this.isTypingValue !== value) {
+            this.isTypingValue = value;
             messageInput.dispatchEvent(new Event('typing'));
-            this.previousValue = this.isTypingValue;
         };
     },
     get isTyping(){
         return this.isTypingValue;
+    },
+
+    statusValue: true,
+    set status(value) {
+
+        if (this.statusValue !== value) {
+            this.statusValue = value;
+            document.dispatchEvent(new Event('status'));
+        };
+    },
+    get status(){
+        return this.statusValue;
     }
 };
 
@@ -175,7 +184,10 @@ function hostServer(){
                 ws.send(newMessage('history', null, history)); //send chat history to connected websocket
             };
             ws.id = wsId++;
-            ws.status = {};
+            ws.status = {
+                isTyping: false,
+                status: true
+            };
 
             ws.send(newMessage('data', null, ws.id)); //assigns an id to the websocket
 
@@ -203,11 +215,16 @@ function hostServer(){
                         typeof message.username === 'number' ? null : message.username = ws.username;
                         sendToAll(JSON.stringify(message));
 
-                        if (message.type === 'status') {
-                            ws.status = JSON.parse(message.data);
-                        } else {
-                            history.push(JSON.stringify(message));
-                        }
+                        switch(message.type) {
+                            case 'typing':
+                                ws.status.isTyping = message.data;
+                                break;
+                            case 'status':
+                                ws.status.status = message.data;
+                                break;
+                            default:
+                                history.push(JSON.stringify(message));
+                        };
                 };
                 history = history.slice(-100); //trims chat history to the latest 100
             });
@@ -269,12 +286,17 @@ function connectToServer(hoster, ip){
 
     clientWs = new WebSocket(`http://${host}:${port}`);
 
-    if (!messageInput.getAttribute('listener')) {
-        messageInput.setAttribute('listener', 'true')
+    if (!document.body.getAttribute('listeners')) {
+        document.body.setAttribute('listeners', 'true')
         messageInput.addEventListener('typing', () => {
             if (clientWs.readyState !== 1) return;
 
-            clientWs.send(newMessage('status', clientWs.id, JSON.stringify({isTyping: status.isTyping})))
+            clientWs.send(newMessage('typing', clientWs.id, status.isTyping));
+        });
+        document.addEventListener('status', () => {
+            if (clientWs.readyState !== 1) return;
+
+            clientWs.send(newMessage('status', clientWs.id, status.status));
         });
     };
 
@@ -306,12 +328,14 @@ function connectToServer(hoster, ip){
                 memberList.innerHTML = '';
 
                 message.data.forEach(member => {
+                    console.log(member);
                     const usernameSpan = document.createElement('span');
                     usernameSpan.setAttribute('class', `connectionName ${member.id === clientWs.id ? 'you' : ''}`);
                     usernameSpan.textContent = member.username;
 
                     const statusDiv = document.createElement('div');
                     statusDiv.setAttribute('class', 'userStatus');
+                    statusDiv.style.backgroundColor = member.status.status ? 'limegreen' : 'orange';
 
                     const typingIndicator = document.createElement('span');
                     typingIndicator.setAttribute('class', 'typingIndicator');
@@ -345,12 +369,21 @@ function connectToServer(hoster, ip){
                 clientWs.id = message.data;
                 break;
 
-            case 'status': //displays info in member list like if they're typing
-                let data = JSON.parse(message.data);
+            case 'typing': //displays info in member list like if they're typing
 
                 for (let element of document.getElementsByClassName('typingIndicator')){
                     if (parseInt(element.parentElement.id) === message.username) {
-                        element.style.display = data.isTyping ? 'inline' : 'none';
+                        element.style.display = message.data ? 'inline' : 'none';
+                        break;
+                    };
+                };
+                break;
+
+            case 'status':
+
+                for (let element of document.getElementsByClassName('userStatus')){
+                    if (parseInt(element.parentElement.id) === message.username) {
+                        element.style.backgroundColor = message.data ? 'limegreen' : 'orange';
                         break;
                     };
                 };
@@ -786,3 +819,6 @@ function sendNotif(body) {
         id = setTimeout(() => status.isTyping = false, 1000);
     });
 }();
+
+window.addEventListener('focus', () => status.status = true);
+window.addEventListener('blur', () => status.status = false);
