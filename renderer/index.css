@@ -129,9 +129,13 @@ input[type=range] {
     display: inline-block;
     width: 10px;
     height: 10px;
-    border-radius: 5px;
+    border-radius: 50%;
     background-color: limegreen;
     margin-right: 2px;
+}
+.idle {
+    background-color: transparent;
+    box-shadow: inset -3px -3px 0 1px orange;
 }
 .you {
     font-weight: bold;

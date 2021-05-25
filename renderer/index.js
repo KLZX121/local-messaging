@@ -328,14 +328,12 @@ function connectToServer(hoster, ip){
                 memberList.innerHTML = '';
 
                 message.data.forEach(member => {
-                    console.log(member);
                     const usernameSpan = document.createElement('span');
                     usernameSpan.setAttribute('class', `connectionName ${member.id === clientWs.id ? 'you' : ''}`);
                     usernameSpan.textContent = member.username;
 
                     const statusDiv = document.createElement('div');
-                    statusDiv.setAttribute('class', 'userStatus');
-                    statusDiv.style.backgroundColor = member.status.status ? 'limegreen' : 'orange';
+                    statusDiv.setAttribute('class', `userStatus ${member.status.status ? '' : 'idle'}`);
 
                     const typingIndicator = document.createElement('span');
                     typingIndicator.setAttribute('class', 'typingIndicator');
@@ -383,7 +381,7 @@ function connectToServer(hoster, ip){
 
                 for (let element of document.getElementsByClassName('userStatus')){
                     if (parseInt(element.parentElement.id) === message.username) {
-                        element.style.backgroundColor = message.data ? 'limegreen' : 'orange';
+                        element.setAttribute('class', `userStatus ${message.data ? '' : 'idle'}`)
                         break;
                     };
                 };
