@@ -176,7 +176,14 @@ function hostServer(){
             server: server,
             clientTracking: true
         });
+        let banList = [];
         wss.on('connection', (ws, request) => {
+
+            if (banList.includes(request.socket.remoteAddress)) {
+                ws.send(newMessage('system error', 'Server', 'You have been banned from this server'));
+                ws.close();
+                return;
+            };
 
             heartbeat(ws);
 
@@ -205,15 +212,33 @@ function hostServer(){
                         ws.isHost = data.isHost;
 
                         const msg = newMessage('system join', 'Global System', `${ws.username}${ws.isHost ? ' (host)' : ''} has joined`);
-                        history.push(msg);
-                        sendToAll(msg);
+                        sendToAll(msg, true);
 
                         sendMemberList(); //updates the connected members list
                         break;
 
+                    case 'kick':
+                        wss.clients.forEach(socket => {
+                            if (socket.id === message.data) {
+                                sendToAll(newMessage('system error', 'Global System', `${socket.username} has been kicked`), true);
+                                socket.close(1000, 'kick');
+                            };
+                        });
+                        break;
+
+                    case 'ban':
+                        wss.clients.forEach(socket => {
+                            if (socket.id === message.data && confirm(`Ban ${socket.username} from this server permanently?`)) {
+                                sendToAll(newMessage('system error', 'Global System', `${socket.username} has been banned`), true);
+                                socket.close(1000, 'ban');
+                                banList.push(socket._socket.remoteAddress);
+                            };
+                        });
+                        break;
+
                     default:
                         typeof message.username === 'number' ? null : message.username = ws.username;
-                        sendToAll(JSON.stringify(message));
+                        sendToAll(JSON.stringify(message), false);
 
                         switch(message.type) {
                             case 'typing':
@@ -230,22 +255,21 @@ function hostServer(){
             });
 
             ws.on('close', (code, reason) => {
-                if (reason) {
+                if (reason === 'leave') {
                     const msg = newMessage('system leave', 'Global System', `${ws.username} has left`);
-                    history.push(msg);
-                    sendToAll(msg);
-                } else {
+                    sendToAll(msg, true);
+                } else if (code !== 1000){
                     const msg = newMessage('system leave', 'Global System', `${ws.username} disconnected`);
-                    history.push(msg);
-                    sendToAll(msg);
+                    sendToAll(msg, true);
                 };
                 sendMemberList();
 
                 if (wss.clients.size === 0) {disconnectAll();};
             });
 
-            function sendToAll(message){
+            function sendToAll(message, saveToHistory){
                 wss.clients.forEach(ws => ws.send(message));
+                if (saveToHistory) history.push(message);
             };
             function sendMemberList(){
                 let members = [];
@@ -348,10 +372,25 @@ function connectToServer(hoster, ip){
                         const hostSpan = document.createElement('span');
                         hostSpan.setAttribute('class','host');
                         hostSpan.innerText = 'HOST';
+
                         mainDiv.appendChild(hostSpan)
                     };
 
-                    mainDiv.appendChild(typingIndicator);
+                    if (hoster && !member.isHost) {
+                        const kickBtn = document.createElement('button');
+                        kickBtn.innerText = 'KICK';
+                        kickBtn.setAttribute('class', 'kickBanBtn kickBtn');
+                        kickBtn.onclick = () => clientWs.send(newMessage('kick', null, member.id));
+
+                        const banBtn = document.createElement('button');
+                        banBtn.innerText = 'BAN';
+                        banBtn.setAttribute('class', 'kickBanBtn banBtn');
+                        banBtn.onclick = () => clientWs.send(newMessage('ban', null, member.id));
+
+                        mainDiv.append(banBtn, kickBtn);
+                    };
+
+                    mainDiv.append(typingIndicator);
 
                     memberList.appendChild(mainDiv);
 
@@ -457,7 +496,7 @@ function disconnectAll(){
         wss.close();
         server.close();
     };
-    clientWs.close(1000, 'true');
+    clientWs.close(1000, 'leave');
 };
 
 function runSearches(){

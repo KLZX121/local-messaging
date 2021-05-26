@@ -13,7 +13,7 @@
         "configurations": [
         {
             "command": "npm test",
-            "name": "Run npm start",
+            "name": "Test app",
             "request": "launch",
             "type": "node-terminal"
         }

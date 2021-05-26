@@ -145,3 +145,14 @@ input[type=range] {
     margin-left: 5px;
     font-weight: bold;
 }
+.kickBanBtn {
+    outline: none;
+    float: right;
+    font-size: 0.7em;
+    border: groove;
+    padding: 0.03em 1em;
+    margin-right: 0.3em;
+}
+.kickBanBtn:active {
+    border: ridge;
+}
