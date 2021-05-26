@@ -21,14 +21,13 @@ const store = new Store({defaults});
 const g = document.getElementById.bind(document);
 const hostBtn = g('hostBtn'),
     chatBox = g('chatBox'),
-    infoStatus = g('infoStatus'),
     errorDisplay = g('errorDisplay'),
     searchServersBtn = g('searchServersBtn'),
     searchStatus = g('searchStatus'),
     disconnectBtn = g('disconnectBtn'),
     username = g('username'),
-    infoHost = g('infoHost'),
-    infoPort = g('infoPort'),
+    infoServerName = g('infoServerName'),
+    infoServerAddress = g('infoServerAddress'),
     searchProgress = g('searchProgress'),
     searchBox = g('searchBox'),
     cancelSearchBtn = g('cancelSearchBtn'),
@@ -51,7 +50,10 @@ const hostBtn = g('hostBtn'),
     fontSizeDisplay = g('fontSizeDisplay'),
     autoStart = g('autoStart'),
     flashFrame = g('flashFrame'),
-    toastNotif = g('toastNotif')
+    toastNotif = g('toastNotif'),
+    hostConfigContainer = g('hostConfigContainer'),
+    hostServerName = g('hostServerName'),
+    hostServerBtn = g('hostServerBtn')
 
 displayAppVersion();
 setupAutoupdating();
@@ -102,7 +104,7 @@ document.addEventListener('keydown', event => {
     };
 });
 
-hostBtn.addEventListener('click', hostServer);
+hostBtn.addEventListener('click', hostConfig);
 searchServersBtn.addEventListener('click', runSearches);
 cancelSearchBtn.addEventListener('click', endSearch);
 manualConnectBtn.addEventListener('click', () => {
@@ -145,7 +147,20 @@ function updateConnection(){
 setupRecentlyConnected();
 //#endregion
 
-function hostServer(){
+function hostConfig(){
+    hostConfigContainer.style.display = 'flex';
+    hostConfigContainer.onclick = event => {
+        if (event.target === hostConfigContainer) hostConfigContainer.style.display = 'none';
+    };
+    hostServerName.value = `${username.value}'s Server`;
+
+    hostServerBtn.onclick = () => {
+        hostConfigContainer.style.display = 'none';
+        hostServer(hostServerName.value)
+    };
+};
+
+function hostServer(serverName = `${username.value}'s Server`){
     if (!username.value) {
         configError('Please enter a username');
         return;
@@ -156,16 +171,15 @@ function hostServer(){
 
     host = getIp();
 
-    infoStatus.innerHTML = 'Hosting';
-
     let history = [];
     let wsId = 1; //used to identify individual websockets
 
-    server = http.createServer((req, res) => {res.end(username.value)}); //ends with host name so network scanning can show host's name
+    server = http.createServer((req, res) => {//ends with host name and server name so network scanning can show this data
+        res.end(JSON.stringify({serverName, hostName: username.value}));
+    }); 
     server.on('error', error => {
         server.close(); 
         parseMessage(newMessage('system error', 'Local System', `There was an error hosting the server: ${error}`));
-        infoStatus.innerHTML = 'Disconnected';
     });
     server.listen(port, host, setupWs);
 
@@ -196,7 +210,7 @@ function hostServer(){
                 status: true
             };
 
-            ws.send(newMessage('data', null, ws.id)); //assigns an id to the websocket
+            ws.send(newMessage('data', null, JSON.stringify({id: ws.id, serverName}))); //assigns an id to the websocket
 
             ws.on('message', message => { //handle incoming message from websocket
                 message = JSON.parse(message);
@@ -258,6 +272,9 @@ function hostServer(){
                 if (reason === 'leave') {
                     const msg = newMessage('system leave', 'Global System', `${ws.username} has left`);
                     sendToAll(msg, true);
+                } else if (reason === 'heartbeat') {
+                    const msg = newMessage('system leave', 'Global System', `${ws.username} failed to connect`);
+                    sendToAll(msg, true);
                 } else if (code !== 1000){
                     const msg = newMessage('system leave', 'Global System', `${ws.username} disconnected`);
                     sendToAll(msg, true);
@@ -283,21 +300,20 @@ function hostServer(){
     };
 };
 
-function connectToServer(hoster, ip){
+function connectToServer(isHoster, ip){
+    let serverName;
+
     if (searching) endSearch(true);
     searchBox.style.display = 'none';
     searchBox.innerHTML = '';
-    infoStatus.innerHTML = 'Connecting';
     parseMessage(newMessage('system', 'Local System', `Connecting to ${ip}...`));
 
-    if (!hoster){
+    if (!isHoster){
         if (!username.value) {
             configError('Please enter a username');
-            infoStatus.innerHTML = 'Disconnected';
             return;
         }  else if (!navigator.onLine){
             configError('Not connected to a network');
-            infoStatus.innerHTML = 'Disconnected';
             return;
         };
         if (wss) wss.close();
@@ -305,8 +321,7 @@ function connectToServer(hoster, ip){
     };
 
     username.setAttribute('readonly', true);
-    infoHost.innerHTML = host;
-    infoPort.innerHTML = port;
+    infoServerAddress.innerText = host;
 
     clientWs = new WebSocket(`http://${host}:${port}`);
 
@@ -334,10 +349,9 @@ function connectToServer(hoster, ip){
         chatBox.innerHTML = '';
 
         clearTimeout(timeout);
-        infoStatus.innerHTML = 'Connected';
         parseMessage(newMessage('system', 'Local System', `Connected to http://${host}:${port}`));
 
-        clientWs.send(newMessage('data', null, JSON.stringify({username: username.value, isHost: hoster ? true : false}))); //send username and if host to websocket server
+        clientWs.send(newMessage('data', null, JSON.stringify({username: username.value, isHost: isHoster ? true : false}))); //send username and if host to websocket server
     });
 
     clientWs.on('message', message => { //handle incoming message from websocket server
@@ -376,7 +390,7 @@ function connectToServer(hoster, ip){
                         mainDiv.appendChild(hostSpan)
                     };
 
-                    if (hoster && !member.isHost) {
+                    if (isHoster && !member.isHost) {
                         const kickBtn = document.createElement('button');
                         kickBtn.innerText = 'KICK';
                         kickBtn.setAttribute('class', 'kickBanBtn kickBtn');
@@ -395,15 +409,18 @@ function connectToServer(hoster, ip){
                     memberList.appendChild(mainDiv);
 
                     if (member.isHost && member.id !== clientWs.id){ //adds the server to recently connected using the host's name and ip
-                        recentlyConnected.unshift({hostName: member.username, ipAddress: host});
+                        recentlyConnected.unshift({serverName, hostName: member.username, ipAddress: host});
 
                         setupRecentlyConnected();
                     };
                 });
                 break;
 
-            case 'data': //sets the websocket to the id assigned by the server
-                clientWs.id = message.data;
+            case 'data': //sets the websocket to the id assigned by the server and receives server name
+                const data = JSON.parse(message.data)
+                clientWs.id = data.id;
+                serverName = data.serverName
+                infoServerName.innerText = serverName;
                 break;
 
             case 'typing': //displays info in member list like if they're typing
@@ -458,10 +475,10 @@ function heartbeat(websocket){ //setup 'heartbeat' to make sure both sockets are
     let pingCounter = 0;
 
     const pingPong = () => {
-        if (infoStatus.innerText === 'Disconnected') return;
+        if (websocket.readyState !== 1) return;
         websocket.ping();
         if (++pingCounter === 5) {
-            websocket.close();
+            websocket.close(1000, 'heartbeat');
         } else {
             setTimeout(pingPong, 3000);
         };
@@ -480,7 +497,7 @@ function setupRecentlyConnected(){
     recentlyConnected.forEach((server, index) => {
         const ipBtn = document.createElement('button');
         ipBtn.style.fontWeight = 'bold';
-        ipBtn.textContent = `${server.hostName} (${server.ipAddress})`;
+        ipBtn.textContent = `${server.serverName} | ${server.hostName} | ${server.ipAddress}`;
 
         recentConnections.appendChild(ipBtn);
         ipBtn.onclick = () => connectToServer(false, server.ipAddress);
@@ -551,7 +568,8 @@ function runSearches(){
 
                 const req = http.request({hostname: ip, port: port, method: 'GET'}, res => { //sends a request to the server for the host's username
                     res.on('data', data => {
-                        ipBtn.innerHTML = `${data.toString()} (${ip})`;
+                        data = JSON.parse(data);
+                        ipBtn.innerText = `${data.serverName} | ${data.hostName} | ${ip}`;
                     });
                 });
                 req.on('error', error => {
@@ -706,9 +724,8 @@ function toggleConnectionBtns(normal){
     memberListDiv.style.display = normal ? 'none' : 'block';
     if (normal) {
         username.removeAttribute('readonly');
-        infoHost.innerHTML = '';
-        infoPort.innerHTML = '';
-        infoStatus.innerHTML = 'Disconnected';
+        infoServerAddress.innerText = '';
+        infoServerName.innerText = '';
         memberList.innerHTML = '';
     };
 };
@@ -756,7 +773,8 @@ function pingRecentlyConnected(){
             btn.style.color = 'green';
             btn.title = 'Server Online';
             res.on('data', data => {
-                btn.innerText = `${data} (${server.ipAddress})`;
+                data = JSON.parse(data);
+                btn.innerText = `${data.serverName} | ${data.hostName} | ${server.ipAddress}`;
             });
         });
         req.on('error', error => {

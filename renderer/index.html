@@ -7,6 +7,8 @@
     <body>
         
         <section id="statusBar">
+
+            <img id="settingsIcon" src="../imgs/settings.png">
             <img id="wifi" src="../imgs/wifi.png">
 
             <button id="checkUpdateBtn" class="updateButton" style="display: none;">Check for Update</button>
@@ -17,23 +19,32 @@
             <button id="installUpdateBtn" class="updateButton" style="display: none;">Install Update</button>
 
             <span id="appVersion"></span>
-
+            
             <div id="autoUpdateStatus" style="color: orange;">Checking for updates...</div>
-
         </section>
         
         <section id="infoSection">
-            <img id="settingsIcon" src="../imgs/settings.png">
 
-            <div><strong>Host Address:</strong>
-            <span id="infoHost"></span></div>
+            <div>
+                <strong><span id="infoServerName"></span></strong>
+                <span id="infoServerAddress" style="color: green;"></span>
+            </div>
 
-            <div><strong>Port:</strong>
-            <span id="infoPort"></span></div>
+        </section>
 
-            <div><strong>Status:</strong>
-            <span id="infoStatus">Disconnected</span></div>
+        <section id="hostConfigContainer" style="display: none;">
+            <div id="hostConfigDiv">
+                <h2>Host Settings</h2>
 
+                <div>
+                    <label for="hostServerName">Server name:</label>
+                    <input id="hostServerName" maxlength="20" spellcheck="false" placeholder="Name">
+                </div>
+
+                <div>
+                    <button id="hostServerBtn">Host</button>
+                </div>
+            </div>
         </section>
 
         <section id="chatBox">

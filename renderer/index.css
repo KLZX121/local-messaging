@@ -95,8 +95,9 @@ input[type=range] {
     width: 30px;
     height: 30px;
     cursor: pointer;
+    margin-left: 5px;
 }
-#settingsContainer {
+#settingsContainer, #hostConfigContainer {
     display: flex;
     position: fixed;
     top: 0;
@@ -108,7 +109,7 @@ input[type=range] {
     justify-content: center;
     align-items: center;
 }
-#settingsDiv {
+#settingsDiv, #hostConfigDiv {
     width: 300px;
     height: auto;
     background-color: rgba(255, 255, 255, 0.7);
@@ -116,7 +117,7 @@ input[type=range] {
     border-radius: 10px;
     font-size: 0.9em;
 }
-#settingsDiv h2 {
+#settingsDiv h2, #hostConfigDiv h2 {
     margin-top: 0;
 }
 .settingsInput {
