@@ -1,4 +1,3 @@
-//#region setup
 const http = require('http');
 const WebSocket = require('ws');
 
@@ -18,6 +17,8 @@ const defaults = {
     serverName: false
 }
 const store = new Store({defaults});
+
+const encryption = require('./encryption.js');
 
 const g = document.getElementById.bind(document);
 const hostBtn = g('hostBtn'),
@@ -116,15 +117,6 @@ manualConnectBtn.addEventListener('click', () => {
     connectToServer(false, manualHost.value);
 });
 
-function generateid(length) {
-    let result = '';
-    const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-    for ( let i = 0; i < length; i++ ) {
-       result += characters.charAt(Math.floor(Math.random() * characters.length));
-    };
-    return result;
-};
-
 joinWhenFound.addEventListener('input', () => { //when join when found option is checked, turns end when found on and disables it
     if (joinWhenFound.checked) {
         endWhenFound.checked = true;
@@ -146,7 +138,6 @@ function updateConnection(){
 };
 
 setupRecentlyConnected();
-//#endregion
 
 function hostConfig(){
     hostConfigContainer.style.display = 'flex';
@@ -803,7 +794,7 @@ settingsContainer.onclick = event => {
     function applySettings(){
         settings = store.store;
 
-        username.value = settings.username || `Guest_${generateid(5)}`;
+        username.value = settings.username || `Guest_${encryption.randStr(5)}`;
         fontSizeSlider.value = settings.fontSize;
         chatBox.style.fontSize = `${0.7 * fontSizeSlider.value}em`;
         fontSizeDisplay.innerText = `${settings.fontSize * 100}%`;
