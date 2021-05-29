@@ -14,7 +14,8 @@ const defaults = {
     endWhenFound: true,
     joinWhenFound: false,
     flashFrame: true,
-    toastNotif: 'all'
+    toastNotif: 'all',
+    serverName: false
 }
 const store = new Store({defaults});
 
@@ -152,15 +153,19 @@ function hostConfig(){
     hostConfigContainer.onclick = event => {
         if (event.target === hostConfigContainer) hostConfigContainer.style.display = 'none';
     };
-    hostServerName.value = `${username.value}'s Server`;
+    hostServerName.value = store.get('serverName') || `${username.value}'s Server`;
 
     hostServerBtn.onclick = () => {
+        if (hostServerName.value.length < 1) {
+            alert('Please enter a server name');
+            return;
+        };
         hostConfigContainer.style.display = 'none';
         hostServer(hostServerName.value)
     };
 };
 
-function hostServer(serverName = `${username.value}'s Server`){
+function hostServer(serverName){
     if (!username.value) {
         configError('Please enter a username');
         return;
@@ -169,6 +174,7 @@ function hostServer(serverName = `${username.value}'s Server`){
         return;
     };
 
+    store.set('serverName', serverName);
     host = getIp();
 
     let history = [];
