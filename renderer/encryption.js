@@ -38,11 +38,11 @@ function decrypt(key, encryptedStr, charLength = 10){
         const char = encryptedStr.slice( i * charLength * 5, i * charLength * 5 + charLength * 5); //get every letter
         let num = '';
         for (let j = 0; j < 5; j++) {
-            num += (key.indexOf(char.slice(j * charLength, j * charLength + charLength)) / 10);
+            num += (key.indexOf(char.slice(j * charLength, j * charLength + charLength)) / 10); //assemble the character code
         };
-        decryptedStr += String.fromCharCode(num)
+        decryptedStr += String.fromCharCode(num);
     };
     return decryptedStr;
-}
+};
 
-module.exports = {randStr, createKey, encrypt, decrypt};
+module.exports = { randStr, createKey, encrypt, decrypt };
