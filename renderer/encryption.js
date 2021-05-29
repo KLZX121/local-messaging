@@ -11,7 +11,7 @@ function createKey(charLength = 10){
     let key = '';
     for (let i = 0; i < 10; i++){
         let str = randStr(charLength);
-        while (key.indexOf(str) !== -1) { //if the random string already exists, generate new random string
+        while (key.includes(str)) { //if the random string already exists, generate new random string
             str = randStr(charLength);
         };
         key += str;
