@@ -144,12 +144,21 @@ function hostConfig(){
     hostConfigContainer.onclick = event => {
         if (event.target === hostConfigContainer) hostConfigContainer.style.display = 'none';
     };
-    hostServerName.value = store.get('serverName') || `${username.value}'s Server`;
+    if (store.get('serverName')) {
+        hostServerName.value = store.get('serverName');
+        hostServerName.setAttribute('defaultName', 'false');
+    } else {
+        hostServerName.value = `${username.value}'s Server`;
+        hostServerName.setAttribute('defaultName', 'true');
+    };
+      
 
     hostServerBtn.onclick = () => {
         if (hostServerName.value.length < 1) {
-            alert('Please enter a server name');
-            return;
+            hostServerName.value = `${username.value}'s Server`;
+            hostServerName.setAttribute('defaultName', 'true');
+        } else if (hostServerName.value !== `${username.value}'s Server`.trim()) {
+            hostServerName.setAttribute('defaultName', 'false');
         };
         hostConfigContainer.style.display = 'none';
         hostServer(hostServerName.value)
@@ -165,7 +174,7 @@ function hostServer(serverName){
         return;
     };
 
-    store.set('serverName', serverName);
+    if (hostServerName.getAttribute('defaultName') === 'false') store.set('serverName', serverName);
     host = getIp();
 
     let history = [];
