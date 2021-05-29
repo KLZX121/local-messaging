@@ -7,11 +7,11 @@ function randStr(length) {
     return result;
 };
 
-function createKey(keyLength, charLength = 10){
+function createKey(charLength = 10){
     let key = '';
-    for (let i = 0; i < keyLength; i++){
+    for (let i = 0; i < 10; i++){
         let str = randStr(charLength);
-        while (key.indexOf(str) !== -1) {
+        while (key.indexOf(str) !== -1) { //if the random string already exists, generate new random string
             str = randStr(charLength);
         };
         key += str;
@@ -22,16 +22,25 @@ function createKey(keyLength, charLength = 10){
 function encrypt(key, plainStr, charLength = 10){
     let encryptedStr = '';
     for (const char of plainStr){
-        const charCode = char.charCodeAt(0);
-        encryptedStr += key.slice(charCode * charLength, charCode * charLength + charLength);
-    };
+        let encryptedCode = '';
+        for (const num of char.charCodeAt(0).toString()) { //for every individual number of the character code
+            encryptedCode += key.slice(parseInt(num) * charLength, parseInt(num) * charLength + charLength); //add the section of the key that corresponds to that number
+        };
+        while (encryptedCode.length < 5 * charLength) encryptedCode = key.slice(0, charLength) + encryptedCode; //if the length of the code is less than max char code of 5, prepend encrypted zeroes
+        encryptedStr += encryptedCode;
+    }; 
     return encryptedStr;
 };
 
 function decrypt(key, encryptedStr, charLength = 10){
     let decryptedStr = '';
-    for (let i = 0; i < encryptedStr.length / charLength; i++) {
-        decryptedStr += String.fromCharCode(key.indexOf(encryptedStr.slice(i * charLength, i * charLength + charLength)) / charLength);
+    for (let i = 0; i < encryptedStr.length / charLength / 5; i++) {
+        const char = encryptedStr.slice( i * charLength * 5, i * charLength * 5 + charLength * 5); //get every letter
+        let num = '';
+        for (let j = 0; j < 5; j++) {
+            num += (key.indexOf(char.slice(j * charLength, j * charLength + charLength)) / 10);
+        };
+        decryptedStr += String.fromCharCode(num)
     };
     return decryptedStr;
 }
