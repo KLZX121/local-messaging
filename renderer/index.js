@@ -198,18 +198,21 @@ function hostServer(serverName){
 
             heartbeat(ws);
 
-            if (history.length > 0) {
-                ws.send(newMessage('history', null, history)); //send chat history to connected websocket
-            };
             ws.id = wsId++;
             ws.status = {
                 isTyping: false,
                 status: true
             };
+            ws.encKey = encryption.createKey();
 
-            ws.send(newMessage('data', null, JSON.stringify({id: ws.id, serverName}))); //assigns an id to the websocket
+            ws.send(newMessage('data', null, JSON.stringify({id: ws.id, serverName, encKey: ws.encKey}))); //assigns an id to the websocket
+            
+            if (history.length > 0) {
+                ws.send(encryption.encrypt(ws.encKey, newMessage('history', null, history))); //send chat history to connected websocket
+            };
 
             ws.on('message', message => { //handle incoming message from websocket
+                if (ws.username) message = encryption.decrypt(ws.encKey, message);
                 message = JSON.parse(message);
                 switch(message.type) {
 
@@ -282,7 +285,7 @@ function hostServer(serverName){
             });
 
             function sendToAll(message, saveToHistory){
-                wss.clients.forEach(ws => ws.send(message));
+                wss.clients.forEach(ws => ws.send(encryption.encrypt(ws.encKey, message)));
                 if (saveToHistory) history.push(message);
             };
             function sendMemberList(){
@@ -327,12 +330,12 @@ function connectToServer(isHoster, ip){
         messageInput.addEventListener('typing', () => {
             if (clientWs.readyState !== 1) return;
 
-            clientWs.send(newMessage('typing', clientWs.id, status.isTyping));
+            clientWs.send(encryption.encrypt(clientWs.encKey, newMessage('typing', clientWs.id, status.isTyping)));
         });
         document.addEventListener('status', () => {
             if (clientWs.readyState !== 1) return;
 
-            clientWs.send(newMessage('status', clientWs.id, status.status));
+            clientWs.send(encryption.encrypt(clientWs.encKey,newMessage('status', clientWs.id, status.status)));
         });
     };
 
@@ -352,6 +355,7 @@ function connectToServer(isHoster, ip){
     });
 
     clientWs.on('message', message => { //handle incoming message from websocket server
+        if (clientWs.encKey) message = encryption.decrypt(clientWs.encKey, message);
         message = JSON.parse(message);
 
         switch (message.type) {
@@ -391,12 +395,12 @@ function connectToServer(isHoster, ip){
                         const kickBtn = document.createElement('button');
                         kickBtn.innerText = 'KICK';
                         kickBtn.setAttribute('class', 'kickBanBtn kickBtn');
-                        kickBtn.onclick = () => clientWs.send(newMessage('kick', null, member.id));
+                        kickBtn.onclick = () => clientWs.send(encryption.encrypt(clientWs.encKey, newMessage('kick', null, member.id)));
 
                         const banBtn = document.createElement('button');
                         banBtn.innerText = 'BAN';
                         banBtn.setAttribute('class', 'kickBanBtn banBtn');
-                        banBtn.onclick = () => clientWs.send(newMessage('ban', null, member.id));
+                        banBtn.onclick = () => clientWs.send(encryption.encrypt(clientWs.encKey, newMessage('ban', null, member.id)));
 
                         mainDiv.append(banBtn, kickBtn);
                     };
@@ -418,6 +422,8 @@ function connectToServer(isHoster, ip){
                 clientWs.id = data.id;
                 serverName = data.serverName
                 infoServerName.innerText = serverName;
+
+                clientWs.encKey = data.encKey;
                 break;
 
             case 'typing': //displays info in member list like if they're typing
@@ -458,7 +464,7 @@ function connectToServer(isHoster, ip){
         if (event.type === 'keydown' && (event.key !== 'Enter' || document.activeElement !== messageInput)) return;
         
         if (clientWs.readyState === 1 && messageInput.value.trim().length > 0){
-            clientWs.send(newMessage('message', null, messageInput.value.trim()));
+            clientWs.send(encryption.encrypt(clientWs.encKey, newMessage('message', null, messageInput.value.trim())));
             messageInput.value = '';
             messageInput.dispatchEvent(messageSendEvent);
         };
