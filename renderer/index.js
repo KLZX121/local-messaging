@@ -15,7 +15,7 @@ const defaults = {
     flashFrame: true,
     toastNotif: 'all',
     serverName: false
-}
+};
 const store = new Store({defaults});
 
 const encryption = require('./encryption.js');
@@ -60,7 +60,7 @@ const hostBtn = g('hostBtn'),
 displayAppVersion();
 setupAutoupdating();
 
-let host, wss, server, clientWs;
+let wss, server, clientWs;
 let halt = false;
 let searching = false;
 const port = 121;
@@ -175,7 +175,6 @@ function hostServer(serverName){
     };
 
     if (hostServerName.getAttribute('defaultName') === 'false') store.set('serverName', serverName);
-    host = getIp();
 
     let history = [];
     let wsId = 1; //used to identify individual websockets
@@ -187,11 +186,11 @@ function hostServer(serverName){
         server.close(); 
         parseMessage(newMessage('system error', 'Local System', `There was an error hosting the server: ${error}`));
     });
-    server.listen(port, host, setupWs);
+    server.listen(port, getIp(), setupWs);
 
     function setupWs(){ //sets up the websocket server 
         chatBox.innerHTML = '';
-        parseMessage(newMessage('system', 'Local System', `Server hosted at http://${host}:${port}`));
+        parseMessage(newMessage('system', 'Local System', `Server hosted at http://${server.address().address}:${port}`));
         wss = new WebSocket.Server({
             server: server,
             clientTracking: true
@@ -305,7 +304,7 @@ function hostServer(serverName){
                 sendToAll(newMessage('memberList', null, members));
             };
         });
-        connectToServer(true);
+        connectToServer(true, server.address().address);
     };
 };
 
@@ -326,13 +325,12 @@ function connectToServer(isHoster, ip){
             return;
         };
         if (wss) wss.close();
-        host = ip;
     };
 
     username.setAttribute('readonly', true);
-    infoServerAddress.innerText = host;
+    infoServerAddress.innerText = ip;
 
-    clientWs = new WebSocket(`http://${host}:${port}`);
+    clientWs = new WebSocket(`http://${ip}:${port}`);
 
     if (!document.body.getAttribute('listeners')) {
         document.body.setAttribute('listeners', 'true')
@@ -358,7 +356,7 @@ function connectToServer(isHoster, ip){
         chatBox.innerHTML = '';
 
         clearTimeout(timeout);
-        parseMessage(newMessage('system', 'Local System', `Connected to http://${host}:${port}`));
+        parseMessage(newMessage('system', 'Local System', `Connected to http://${ip}:${port}`));
 
         clientWs.send(newMessage('data', null, JSON.stringify({username: username.value, isHost: isHoster ? true : false}))); //send username and if host to websocket server
     });
@@ -419,7 +417,7 @@ function connectToServer(isHoster, ip){
                     memberList.appendChild(mainDiv);
 
                     if (member.isHost && member.id !== clientWs.id){ //adds the server to recently connected using the host's name and ip
-                        recentlyConnected.unshift({serverName, hostName: member.username, ipAddress: host});
+                        recentlyConnected.unshift({serverName, hostName: member.username, ipAddress: ip});
 
                         setupRecentlyConnected();
                     };
