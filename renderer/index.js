@@ -1,7 +1,6 @@
 const http = require('http');
 const WebSocket = require('ws');
 
-const { networkInterfaces } = require('os'); //used to get IP
 const { ipcRenderer} = require('electron');
 
 const Store = require('electron-store');
@@ -712,8 +711,14 @@ function configError(error){
 function scrollDown(){chatBox.scrollTop = chatBox.scrollHeight - chatBox.clientHeight;};
 
 function getIp(){
-    const networks = networkInterfaces().WiFi;
-    return networks.filter(network => network.family === "IPv4")[0].address;
+    const networks = require('os').networkInterfaces();
+    for (const type in networks) {
+        if (['wi', 'fi'].every(el => type.toLowerCase().includes(el))) {
+            return networks[type].filter(network => network.family === 'IPv4')[0]?.address;
+        } else  {
+            return false;
+        };
+    };
 };
 
 function toggleSearchBtns(normal){
