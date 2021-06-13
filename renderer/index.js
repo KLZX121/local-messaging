@@ -20,7 +20,7 @@ const store = new Store({defaults});
 const encryption = require('./encryption.js');
 
 const g = document.getElementById.bind(document);
-const hostBtn = g('hostBtn'),
+const hostConfigBtn = g('hostConfigBtn'),
     chatBox = g('chatBox'),
     errorDisplay = g('errorDisplay'),
     searchServersBtn = g('searchServersBtn'),
@@ -59,11 +59,10 @@ const hostBtn = g('hostBtn'),
 displayAppVersion();
 setupAutoupdating();
 
-let wss, server, clientWs;
 let halt = false;
 let searching = false;
 const port = 121;
-let recentlyConnected = store.get('recentlyConnected') || [];
+let recentlyConnected = store.get('recentlyConnected');
 const status = {
     isTypingValue: false,
     set isTyping(value){
@@ -102,10 +101,13 @@ document.addEventListener('keydown', event => {
         case manualHost:
             manualConnectBtn.click();
             break;
+        case hostServerName:
+            hostServerBtn.click();
+            break;
     };
 });
 
-hostBtn.addEventListener('click', hostConfig);
+hostConfigBtn.addEventListener('click', hostConfig);
 searchServersBtn.addEventListener('click', runSearches);
 cancelSearchBtn.addEventListener('click', endSearch);
 manualConnectBtn.addEventListener('click', () => {
@@ -151,7 +153,6 @@ function hostConfig(){
         hostServerName.setAttribute('defaultName', 'true');
     };
       
-
     hostServerBtn.onclick = () => {
         if (hostServerName.value.length < 1) {
             hostServerName.value = `${username.value}'s Server`;
@@ -162,148 +163,171 @@ function hostConfig(){
         hostConfigContainer.style.display = 'none';
         hostServer(hostServerName.value)
     };
-};
 
-function hostServer(serverName){
-    if (!username.value) {
-        configError('Please enter a username');
-        return;
-    } else if (!navigator.onLine){
-        configError('Not connected to a network');
-        return;
-    };
-
-    if (hostServerName.getAttribute('defaultName') === 'false') store.set('serverName', serverName);
-
-    let history = [];
-    let wsId = 1; //used to identify individual websockets
-
-    server = http.createServer((req, res) => {//ends with host name and server name so network scanning can show this data
-        res.end(JSON.stringify({serverName, hostName: username.value}));
-    }); 
-    server.on('error', error => {
-        server.close(); 
-        parseMessage(newMessage('system error', 'Local System', `There was an error hosting the server: ${error}`));
-    });
-    server.listen(port, getIp(), setupWs);
-
-    function setupWs(){ //sets up the websocket server 
-        chatBox.innerHTML = '';
-        parseMessage(newMessage('system', 'Local System', `Server hosted at http://${server.address().address}:${port}`));
-        wss = new WebSocket.Server({
-            server: server,
-            clientTracking: true
+    function hostServer(serverName){
+        if (!username.value) {
+            configError('Please enter a username');
+            return;
+        } else if (!navigator.onLine){
+            configError('Not connected to a network');
+            return;
+        };
+    
+        if (hostServerName.getAttribute('defaultName') === 'false') store.set('serverName', serverName);
+    
+        let history = [];
+        let wsId = 1; //used to identify individual websockets
+    
+        const server = http.createServer((req, res) => {//ends with host name and server name so network scanning can show this data
+            res.end(JSON.stringify({serverName, hostName: username.value}));
+        }); 
+        server.on('error', error => {
+            server.close(); 
+            parseMessage(newMessage('system error', 'Local System', `There was an error hosting the server: ${error}`));
         });
-        let banList = [];
-        wss.on('connection', (ws, request) => {
-
-            if (banList.includes(request.socket.remoteAddress)) {
-                ws.send(newMessage('system error', 'Server', 'You have been banned from this server'));
-                ws.close();
-                return;
-            };
-
-            heartbeat(ws);
-
-            ws.id = wsId++;
-            ws.status = {
-                isTyping: false,
-                status: true
-            };
-            ws.encKey = encryption.createKey();
-
-            ws.send(newMessage('data', null, JSON.stringify({id: ws.id, serverName, encKey: ws.encKey}))); //assigns an id to the websocket
-            
-            if (history.length > 0) {
-                ws.send(encryption.encrypt(ws.encKey, newMessage('history', null, history))); //send chat history to connected websocket
-            };
-
-            ws.on('message', message => { //handle incoming message from websocket
-                if (ws.username) message = encryption.decrypt(ws.encKey, message);
-                message = JSON.parse(message);
-                switch(message.type) {
-
-                    case 'data': //save username and if host of the websocket
-                        const data = JSON.parse(message.data);
-
-                        //check if duplicate username
-                        wss.clients.forEach(client => {if (client.username === data.username) data.username += ` [${ws.id}]`;});
-
-                        ws.username = data.username;
-                        ws.isHost = data.isHost;
-
-                        const msg = newMessage('system join', 'Global System', `${ws.username}${ws.isHost ? ' (host)' : ''} has joined`);
-                        sendToAll(msg, true);
-
-                        sendMemberList(); //updates the connected members list
-                        break;
-
-                    case 'kick':
-                        wss.clients.forEach(socket => {
-                            if (socket.id === message.data) {
-                                sendToAll(newMessage('system error', 'Global System', `${socket.username} has been kicked`), true);
-                                socket.close(1000, 'kick');
-                            };
-                        });
-                        break;
-
-                    case 'ban':
-                        wss.clients.forEach(socket => {
-                            if (socket.id === message.data && confirm(`Ban ${socket.username} from this server permanently?`)) {
-                                sendToAll(newMessage('system error', 'Global System', `${socket.username} has been banned`), true);
-                                socket.close(1000, 'ban');
-                                banList.push(socket._socket.remoteAddress);
-                            };
-                        });
-                        break;
-
-                    default:
-                        typeof message.username === 'number' ? null : message.username = ws.username;
-                        sendToAll(JSON.stringify(message), false);
-
-                        switch(message.type) {
-                            case 'typing':
-                                ws.status.isTyping = message.data;
-                                break;
-                            case 'status':
-                                ws.status.status = message.data;
-                                break;
-                            default:
-                                history.push(JSON.stringify(message));
-                        };
-                };
-                history = history.slice(-100); //trims chat history to the latest 100
+        server.listen(port, getIp(), setupWs);
+    
+        function setupWs(){ //sets up the websocket server 
+            chatBox.innerHTML = '';
+            parseMessage(newMessage('system', 'Local System', `Server hosted at http://${server.address().address}:${port}`));
+            const wss = new WebSocket.Server({
+                server: server,
+                clientTracking: true
             });
-
-            ws.on('close', (code, reason) => {
-                if (reason === 'leave') {
-                    const msg = newMessage('system leave', 'Global System', `${ws.username} has left`);
-                    sendToAll(msg, true);
-                } else if (reason === 'heartbeat') {
-                    const msg = newMessage('system leave', 'Global System', `${ws.username} failed to connect`);
-                    sendToAll(msg, true);
-                } else if (code !== 1000){
-                    const msg = newMessage('system leave', 'Global System', `${ws.username} disconnected`);
-                    sendToAll(msg, true);
+            let banList = [];
+            wss.on('connection', (ws, request) => {
+    
+                if (banList.includes(request.socket.remoteAddress)) {
+                    ws.send(newMessage('system error', 'Server', 'You have been banned from this server'));
+                    ws.close();
+                    return;
                 };
-                sendMemberList();
-
-                if (wss.clients.size === 0) {disconnectAll();};
-            });
-
-            function sendToAll(message, saveToHistory){
-                wss.clients.forEach(ws => ws.send(encryption.encrypt(ws.encKey, message)));
-                if (saveToHistory) history.push(message);
-            };
-            function sendMemberList(){
-                let members = [];
-                wss.clients.forEach(ws => {
-                    members.push({username: ws.username, isHost: ws.isHost, id: ws.id, status: ws.status})
+    
+                if (!disconnectBtn.listener?.includes('host')) {
+                    disconnectBtn.addEventListener('click', () => {
+                        server.close();
+                        wss.close();
+                    });
+                    disconnectBtn.listener += 'host';
+                };
+    
+                 //setup 'heartbeat' to make sure both sockets are connected
+                let pingCounter = 0;
+                const pingPong = () => {
+                    if (ws.readyState !== 1) return;
+                    ws.ping();
+                    if (++pingCounter === 5) {
+                        ws.close(1000, 'heartbeat');
+                    } else {
+                        setTimeout(pingPong, 3000);
+                    };
+                };
+                setTimeout(pingPong, 3000);
+                ws.on('pong', () => pingCounter--);
+    
+                ws.id = wsId++;
+                ws.status = {
+                    isTyping: false,
+                    status: true
+                };
+                ws.encKey = encryption.createKey();
+    
+                ws.send(newMessage('data', null, JSON.stringify({id: ws.id, serverName, encKey: ws.encKey}))); //assigns an id to the websocket
+                
+                if (history.length > 0) {
+                    ws.send(encryption.encrypt(ws.encKey, newMessage('history', null, history))); //send chat history to connected websocket
+                };
+    
+                ws.on('message', message => { //handle incoming message from websocket
+                    if (ws.username) message = encryption.decrypt(ws.encKey, message);
+                    message = JSON.parse(message);
+                    switch(message.type) {
+    
+                        case 'data': //save username and if host of the websocket
+                            const data = JSON.parse(message.data);
+    
+                            //check if duplicate username
+                            wss.clients.forEach(client => {if (client.username === data.username) data.username += ` [${ws.id}]`;});
+    
+                            ws.username = data.username;
+                            ws.isHost = data.isHost;
+    
+                            const msg = newMessage('system join', 'Global System', `${ws.username}${ws.isHost ? ' (host)' : ''} has joined`);
+                            sendToAll(msg, true);
+    
+                            sendMemberList(); //updates the connected members list
+                            break;
+    
+                        case 'kick':
+                            wss.clients.forEach(socket => {
+                                if (socket.id === message.data) {
+                                    sendToAll(newMessage('system error', 'Global System', `${socket.username} has been kicked`), true);
+                                    socket.close(1000, 'kick');
+                                };
+                            });
+                            break;
+    
+                        case 'ban':
+                            wss.clients.forEach(socket => {
+                                if (socket.id === message.data && confirm(`Ban ${socket.username} from this server permanently?`)) {
+                                    sendToAll(newMessage('system error', 'Global System', `${socket.username} has been banned`), true);
+                                    socket.close(1000, 'ban');
+                                    banList.push(socket._socket.remoteAddress);
+                                };
+                            });
+                            break;
+    
+                        default:
+                            typeof message.username === 'number' ? null : message.username = ws.username;
+                            sendToAll(JSON.stringify(message), false);
+    
+                            switch(message.type) {
+                                case 'typing':
+                                    ws.status.isTyping = message.data;
+                                    break;
+                                case 'status':
+                                    ws.status.status = message.data;
+                                    break;
+                                default:
+                                    history.push(JSON.stringify(message));
+                            };
+                    };
+                    history = history.slice(-100); //trims chat history to the latest 100
                 });
-                sendToAll(newMessage('memberList', null, members));
-            };
-        });
-        connectToServer(true, server.address().address);
+    
+                ws.on('close', (code, reason) => {
+                    if (reason === 'leave') {
+                        const msg = newMessage('system leave', 'Global System', `${ws.username} has left`);
+                        sendToAll(msg, true);
+                    } else if (reason === 'heartbeat') {
+                        const msg = newMessage('system leave', 'Global System', `${ws.username} failed to connect`);
+                        sendToAll(msg, true);
+                    } else if (code !== 1000){
+                        const msg = newMessage('system leave', 'Global System', `${ws.username} disconnected`);
+                        sendToAll(msg, true);
+                    };
+                    sendMemberList();
+    
+                    if (wss.clients.size === 0) {
+                        wss.close();
+                        server.close();
+                    };
+                });
+    
+                function sendToAll(message, saveToHistory){
+                    wss.clients.forEach(ws => ws.send(encryption.encrypt(ws.encKey, message)));
+                    if (saveToHistory) history.push(message);
+                };
+                function sendMemberList(){
+                    let members = [];
+                    wss.clients.forEach(ws => {
+                        members.push({username: ws.username, isHost: ws.isHost, id: ws.id, status: ws.status})
+                    });
+                    sendToAll(newMessage('memberList', null, members));
+                };
+            });
+            connectToServer(true, server.address().address);
+        };
     };
 };
 
@@ -323,13 +347,12 @@ function connectToServer(isHoster, ip){
             configError('Not connected to a network');
             return;
         };
-        if (wss) wss.close();
     };
 
     username.setAttribute('readonly', true);
     infoServerAddress.innerText = ip;
 
-    clientWs = new WebSocket(`http://${ip}:${port}`);
+    const clientWs = new WebSocket(`http://${ip}:${port}`);
 
     if (!document.body.getAttribute('listeners')) {
         document.body.setAttribute('listeners', 'true')
@@ -345,7 +368,9 @@ function connectToServer(isHoster, ip){
         });
     };
 
-    let timeout = setTimeout(disconnectAll, 10000); //disconnects websocket if it fails to connect within 10 seconds
+    let timeout = setTimeout(() => {
+        clientWs.close();
+    }, 10000); //disconnects websocket if it fails to connect within 10 seconds
 
     clientWs.on('error', error => {
         parseMessage(newMessage('system error', 'Local System', `There was an error connecting to the server: ${error}`));
@@ -477,24 +502,13 @@ function connectToServer(isHoster, ip){
     };
 
     toggleConnectionBtns(false);
-    disconnectBtn.onclick = disconnectAll;
-};
 
-function heartbeat(websocket){ //setup 'heartbeat' to make sure both sockets are connected
-    let pingCounter = 0;
-
-    const pingPong = () => {
-        if (websocket.readyState !== 1) return;
-        websocket.ping();
-        if (++pingCounter === 5) {
-            websocket.close(1000, 'heartbeat');
-        } else {
-            setTimeout(pingPong, 3000);
-        };
+    if (!disconnectBtn.listener?.includes('connect')) {
+        disconnectBtn.addEventListener('click', () => {
+            clientWs.close(1000, 'leave');
+        });
+        disconnectBtn.listener += 'connect';
     };
-    setTimeout(pingPong, 3000);
-
-    websocket.on('pong', () => pingCounter--);
 };
 
 function setupRecentlyConnected(){
@@ -515,14 +529,6 @@ function setupRecentlyConnected(){
     });
     store.set('recentlyConnected', recentlyConnected);
     pingRecentlyConnected();
-};
-
-function disconnectAll(){
-    if (wss) {
-        wss.close();
-        server.close();
-    };
-    clientWs.close(1000, 'leave');
 };
 
 function runSearches(){
@@ -678,16 +684,16 @@ function parseMessage(data){
     message.append(timeEm, ' ', usernameStrong, messageData);
 
     chatBox.appendChild(message);
-    scrollDown();
-    trimMessages();
     
-    if (toastNotif.value !== 'networkScan') sendNotif(`${data.username}: ${data.data}`);
-};
+    //scroll to bottom of chatbox
+    chatBox.scrollTop = chatBox.scrollHeight - chatBox.clientHeight;
 
-function trimMessages(){ //caps the chatbox to 100 messages
+    //caps the chatbox to 100 messages
     let messages = Array.from(document.getElementsByClassName('chatMessage')).slice(-100);
     chatBox.innerHTML = '';
     messages.forEach(msg => chatBox.appendChild(msg));
+    
+    if (toastNotif.value !== 'networkScan') sendNotif(`${data.username}: ${data.data}`);
 };
 
 function newMessage(type, username, data){ //convert this to a constructor maybe someday
@@ -708,8 +714,6 @@ function configError(error){
     setTimeout(() => errorDisplay.innerHTML = '', 3000);
 };
 
-function scrollDown(){chatBox.scrollTop = chatBox.scrollHeight - chatBox.clientHeight;};
-
 function getIp(){
     const networks = require('os').networkInterfaces();
     for (const type in networks) {
@@ -725,13 +729,13 @@ function toggleSearchBtns(normal){
     searchProgress.style.display = normal ? 'none' : 'block';
     searchServersBtn.style.display = normal ? 'inline' : 'none';
     cancelSearchBtn.style.display = normal ? 'none': 'inline';
-    hostBtn.style.display = normal ? 'inline' : 'none';
+    hostConfigBtn.style.display = normal ? 'inline' : 'none';
     manualConnect.style.display = normal ? 'block' : 'none';
     recentConnectionsDiv.style.display = normal ? 'block' : 'none';
 };
 
 function toggleConnectionBtns(normal){
-    hostBtn.style.display = normal ? 'inline-block' : 'none';
+    hostConfigBtn.style.display = normal ? 'inline-block' : 'none';
     searchServersBtn.style.display = normal ? 'inline-block' : 'none';
     disconnectBtn.style.display = normal ? 'none' : 'inline-block';
     manualConnect.style.display = normal ? 'block' : 'none';
