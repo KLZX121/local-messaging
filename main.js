@@ -2,6 +2,7 @@ const { app, BrowserWindow, Menu, Tray, ipcMain, nativeImage } = require('electr
 const path = require('path');
 const { autoUpdater } = require('electron-updater');
 const Store = require('electron-store');
+const bonjour = require('bonjour')();
 
 Store.initRenderer();
 Menu.setApplicationMenu(null);
@@ -31,12 +32,11 @@ function boot(){
         let doFlashFrame = true;
         ipcMain.on('flashFrame', (event, flashFrame) => doFlashFrame = flashFrame);
 
-        win.on('close', function (event) {
+        win.on('close', event => {
             if (!app.isQuitting){
                 event.preventDefault();
                 win.hide();
-            }
-            return false;
+            };
         });
 
         const contextMenu = Menu.buildFromTemplate([
@@ -81,7 +81,6 @@ function boot(){
         autoUpdater.autoDownload = false;
         autoUpdater.checkForUpdates().catch(error => sendUpdate('error', 'An error occurred while checking for updates (hover for error) - this may happen if github.com is blocked on your network', error));
 
-        //autoUpdater.on('error', error => sendUpdate('error', 'An error occurred', error));
         autoUpdater.on('checking-for-update', () => sendUpdate('updateCheck', 'Checking for updates...'));
         autoUpdater.on('update-available', info => sendUpdate('updateAvailable', 'Update available', info));
         autoUpdater.on('update-not-available', () => sendUpdate('updateNone', 'No new updates'));
@@ -106,7 +105,31 @@ function boot(){
             win.webContents.send('autoUpdater', { type, text, data });
         };
     };
-};
+
+    let hostService, browser;
+    ipcMain.on('bonjour', (event, args) => {
+        switch (args.type){
+            case 'service':
+                hostService = bonjour.publish({ name: JSON.stringify({ serverName: args.serverName, hostName: args.hostName }), type: 'http', port: args.port});
+                break;
+            case 'closeService':
+                bonjour.unpublishAll();
+                break;
+            case 'getServices':
+                event.returnValue = browser?.services;
+                break;
+            case 'find':
+                browser = bonjour.find({ type: 'http' });
+                browser.on('up', service => {
+                    if (service.port === 121 && (hostService?.published ? service.host !== hostService.host : true)) win.webContents.send('bonjour', { action: 'up', service });
+                });
+                browser.on('down', service => {
+                    if (service.port === 121) win.webContents.send('bonjour', { action: 'down', service });
+                });
+                break;
+        }
+    });
+}
 
 app.on('ready', boot);
 app.on('before-quit', () => tray.destroy());

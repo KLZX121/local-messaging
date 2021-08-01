@@ -65,17 +65,9 @@
             </div>
             <div id="controlPanel">
                 <button id="hostConfigBtn" title="Host a server on your local network">Host Server</button>
-                <button id="searchServersBtn" title="Scan for open servers on your local network. Warning: may cause lag">Search for Servers</button>
-                <button id="cancelSearchBtn" style="display: none;">Cancel Search</button>
             </div>
 
             <div id="errorDisplay"></div>
-            <div id="searchStatus"></div>
-            <progress id="searchProgress" value="0" style="display: none;"></progress>
-
-            <div id="searchBox" style="display: none;">
-
-            </div>
 
             <div id="manualConnect">
                 <h3 title="Enter the host address of the server to manually connect">Manually connect</h3>
@@ -86,9 +78,15 @@
             </div>
 
             <div id="recentConnectionsDiv">
-                <h3 title="Record of last 5 connections this session" class="inlineBlock">Recent Connections</h3>
-                <button id="pingConnectionsBtn" class="inlineBlock" title="Pings servers to see if they are online or offline">Ping Servers</button>
-                <div id="recentConnections">
+                <h3 title="Record of last 5 connections" class="inlineBlock">Recent Connections</h3>
+                <div id="recentConnections" class="serverList">
+
+                </div>
+            </div>
+
+            <div id="serverFoundDiv">
+                <h3>Open Servers on Network</h3>
+                <div id="serverFoundList" class="serverList">
 
                 </div>
             </div>
@@ -117,18 +115,6 @@
                     <div>
                         <label for="autoStart" title="Save settings to take effect">Boot app on computer start-up</label>
                         <input type="checkbox" id="autoStart">
-                    </div>
-                </div>
-
-                <div>
-                    <h3>Network Scanning</h3>
-                    <div>
-                        <label for="endWhenFound" title="Will end the network scan when an open server is found">End search when server found</label>
-                        <input type="checkbox" id="endWhenFound">
-                    </div>
-                    <div>
-                        <label for="joinWhenFound" title="Will join the first open server that is found when scanning">Auto-join when server found</label>
-                        <input type="checkbox" id="joinWhenFound">
                     </div>
                 </div>
 

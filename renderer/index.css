@@ -44,10 +44,10 @@ input[type=range] {
 .leave {
     color: purple;
 }
-.join {
+.join, .online {
     color: green;
 }
-.error {
+.error, .offline {
     color: red;
 }
 #memberListDiv {
@@ -156,4 +156,29 @@ input[type=range] {
 }
 .kickBanBtn:active {
     border: ridge;
+}
+
+.serverList {
+    border-left: solid lightgrey 1px;
+}
+.serverList > div {
+    border-bottom: solid lightgrey 1px;
+}
+.serverList > div:last-child {
+    border-bottom: none;
+}
+.serverContainer {
+    padding: 0.5em;
+}
+.serverStatus, .serverDetailsDiv {
+    font-size: 0.8em;
+}
+.serverJoinBtn {
+    float: right;
+}
+.serverUsername {
+    color: dodgerblue;
+}
+.serverIp {
+    color: gray;
 }

@@ -1,4 +1,3 @@
-const http = require('http');
 const WebSocket = require('ws');
 
 const { ipcRenderer} = require('electron');
@@ -9,8 +8,6 @@ const defaults = {
     username: false,
     fontSize: 1,
     autoStart: false,
-    endWhenFound: true,
-    joinWhenFound: false,
     flashFrame: true,
     toastNotif: 'all',
     serverName: false
@@ -23,28 +20,21 @@ const g = document.getElementById.bind(document);
 const hostConfigBtn = g('hostConfigBtn'),
     chatBox = g('chatBox'),
     errorDisplay = g('errorDisplay'),
-    searchServersBtn = g('searchServersBtn'),
-    searchStatus = g('searchStatus'),
     disconnectBtn = g('disconnectBtn'),
     username = g('username'),
     infoServerName = g('infoServerName'),
     infoServerAddress = g('infoServerAddress'),
-    searchProgress = g('searchProgress'),
-    searchBox = g('searchBox'),
-    cancelSearchBtn = g('cancelSearchBtn'),
-    endWhenFound = g('endWhenFound'),
+    serverFoundList = g('serverFoundList'),
     manualConnect = g('manualConnect'),
     manualConnectBtn = g('manualConnectBtn'),
     manualHost = g('manualHost'),
     messageInput = g('messageInput'),
     memberList = g('memberList'),
     memberListDiv = g('memberListDiv'),
-    joinWhenFound = g('joinWhenFound'),
     wifi = g('wifi'),
     recentConnections = g('recentConnections'),
     recentConnectionsDiv = g('recentConnectionsDiv'),
     sendMessageBtn = g('sendMessageBtn'),
-    pingConnectionsBtn = g('pingConnectionsBtn'),
     settingsIcon = g('settingsIcon'),
     settingsContainer = g('settingsContainer'),
     fontSizeSlider = g('fontSizeSlider'),
@@ -54,14 +44,15 @@ const hostConfigBtn = g('hostConfigBtn'),
     toastNotif = g('toastNotif'),
     hostConfigContainer = g('hostConfigContainer'),
     hostServerName = g('hostServerName'),
-    hostServerBtn = g('hostServerBtn')
+    hostServerBtn = g('hostServerBtn'),
+    controlPanel = g('controlPanel')
 
 displayAppVersion();
 setupAutoupdating();
 
-let halt = false;
-let searching = false;
 const port = 121;
+let isHosting = false
+let isConnected = false;;
 let recentlyConnected = store.get('recentlyConnected');
 const status = {
     isTypingValue: false,
@@ -108,23 +99,12 @@ document.addEventListener('keydown', event => {
 });
 
 hostConfigBtn.addEventListener('click', hostConfig);
-searchServersBtn.addEventListener('click', runSearches);
-cancelSearchBtn.addEventListener('click', endSearch);
 manualConnectBtn.addEventListener('click', () => {
     if (!manualHost.value){
         configError('Please enter a host');
         return;
     };
-    connectToServer(false, manualHost.value);
-});
-
-joinWhenFound.addEventListener('input', () => { //when join when found option is checked, turns end when found on and disables it
-    if (joinWhenFound.checked) {
-        endWhenFound.checked = true;
-        endWhenFound.disabled = true;
-    } else {
-        endWhenFound.disabled = false;
-    };
+    connectToServer(manualHost.value, false);
 });
 
 updateConnection();
@@ -138,10 +118,13 @@ function updateConnection(){
     };
 };
 
+runSearches();
 setupRecentlyConnected();
 
 function hostConfig(){
     hostConfigContainer.style.display = 'flex';
+    hostServerName.focus();
+
     hostConfigContainer.onclick = event => {
         if (event.target === hostConfigContainer) hostConfigContainer.style.display = 'none';
     };
@@ -178,23 +161,30 @@ function hostConfig(){
         let history = [];
         let wsId = 1; //used to identify individual websockets
     
-        const server = http.createServer((req, res) => {//ends with host name and server name so network scanning can show this data
-            res.end(JSON.stringify({serverName, hostName: username.value}));
-        }); 
-        server.on('error', error => {
-            server.close(); 
-            parseMessage(newMessage('system error', 'Local System', `There was an error hosting the server: ${error}`));
-        });
-        server.listen(port, getIp(), setupWs);
-    
+        setupWs();
         function setupWs(){ //sets up the websocket server 
             chatBox.innerHTML = '';
-            parseMessage(newMessage('system', 'Local System', `Server hosted at http://${server.address().address}:${port}`));
             const wss = new WebSocket.Server({
-                server: server,
+                host: getIp(),
+                port,
                 clientTracking: true
             });
             let banList = [];
+
+            ipcRenderer.send('bonjour', {type: 'service', serverName, hostName: username.value, port})
+
+            wss.on('error', error => {
+                parseMessage(newMessage('system error', 'Local System', `There was an error hosting the server: ${error}`));
+            });
+            wss.on('listening', () => {
+                isHosting = true;
+                parseMessage(newMessage('system', 'Local System', `Server hosted at http://${wss.address().address}:${port}`));
+                connectToServer(wss.address().address, true, wss);
+            });
+            wss.on('close', (e) => {
+                isHosting = false;
+                ipcRenderer.send('bonjour', {type: 'closeService'})
+            });
             wss.on('connection', (ws, request) => {
     
                 if (banList.includes(request.socket.remoteAddress)) {
@@ -203,15 +193,8 @@ function hostConfig(){
                     return;
                 };
     
-                if (!disconnectBtn.listener?.includes('host')) {
-                    disconnectBtn.addEventListener('click', () => {
-                        server.close();
-                        wss.close();
-                    });
-                    disconnectBtn.listener += 'host';
-                };
-    
                  //setup 'heartbeat' to make sure both sockets are connected
+                 //probably doesnt work well so need to fix it up once more testing is done
                 let pingCounter = 0;
                 const pingPong = () => {
                     if (ws.readyState !== 1) return;
@@ -308,9 +291,8 @@ function hostConfig(){
                     };
                     sendMemberList();
     
-                    if (wss.clients.size === 0) {
+                    if (wss.clients.size === 0 && !ws.isHost) {
                         wss.close();
-                        server.close();
                     };
                 });
     
@@ -326,26 +308,30 @@ function hostConfig(){
                     sendToAll(newMessage('memberList', null, members));
                 };
             });
-            connectToServer(true, server.address().address);
         };
     };
 };
 
-function connectToServer(isHoster, ip){
+function connectToServer(ip, isHoster, websocketServer){
     let serverName;
 
-    if (searching) endSearch(true);
-    searchBox.style.display = 'none';
-    searchBox.innerHTML = '';
     parseMessage(newMessage('system', 'Local System', `Connecting to ${ip}...`));
 
     if (!isHoster){
         if (!username.value) {
             configError('Please enter a username');
+            parseMessage(newMessage('system error', 'Local System', `Please enter a username`));
             return;
         }  else if (!navigator.onLine){
             configError('Not connected to a network');
+            parseMessage(newMessage('system error', 'Local System', `Not connected to a network`));
             return;
+        };
+    };
+
+    for (const serverElement of serverFoundList.children) {
+        if (serverElement.id.replace('foundServer-', '') === ip){
+            serverElement.style.display = 'none';
         };
     };
 
@@ -354,18 +340,18 @@ function connectToServer(isHoster, ip){
 
     const clientWs = new WebSocket(`http://${ip}:${port}`);
 
-    if (!document.body.getAttribute('listeners')) {
-        document.body.setAttribute('listeners', 'true')
-        messageInput.addEventListener('typing', () => {
-            if (clientWs.readyState !== 1) return;
+    messageInput.addEventListener('typing', sendTyping);
+    document.addEventListener('status', sendStatus);
 
-            clientWs.send(encryption.encrypt(clientWs.encKey, newMessage('typing', clientWs.id, status.isTyping)));
-        });
-        document.addEventListener('status', () => {
-            if (clientWs.readyState !== 1) return;
+    function sendTyping(){
+        if (clientWs.readyState !== 1) return;
 
-            clientWs.send(encryption.encrypt(clientWs.encKey,newMessage('status', clientWs.id, status.status)));
-        });
+        clientWs.send(encryption.encrypt(clientWs.encKey, newMessage('typing', clientWs.id, status.isTyping)));
+    };
+    function sendStatus(){
+        if (clientWs.readyState !== 1) return;
+
+        clientWs.send(encryption.encrypt(clientWs.encKey, newMessage('status', clientWs.id, status.status)));
     };
 
     let timeout = setTimeout(() => {
@@ -377,6 +363,7 @@ function connectToServer(isHoster, ip){
     });
 
     clientWs.on('open', () => {
+        isConnected = true;
         chatBox.innerHTML = '';
 
         clearTimeout(timeout);
@@ -483,8 +470,16 @@ function connectToServer(isHoster, ip){
     });
 
     clientWs.on('close', () => {
+        isConnected = false;
         parseMessage(newMessage('system leave', 'Local System', 'Connection closed'));
         toggleConnectionBtns(true);
+        for (const serverElement of serverFoundList.children) {
+            if (serverElement.id.replace('foundServer-', '') === ip){
+                serverElement.removeAttribute('style');
+            };
+        };
+        messageInput.removeEventListener('typing', sendTyping);
+        document.removeEventListener('status', sendStatus);
     });
 
     document.onkeydown = sendMessage;
@@ -503,169 +498,121 @@ function connectToServer(isHoster, ip){
 
     toggleConnectionBtns(false);
 
-    if (!disconnectBtn.listener?.includes('connect')) {
-        disconnectBtn.addEventListener('click', () => {
-            clientWs.close(1000, 'leave');
-        });
-        disconnectBtn.listener += 'connect';
+    disconnectBtn.onclick = () => {
+        clientWs.close(1000, 'leave');
+        if (isHoster) {
+            websocketServer.close();
+        };
     };
 };
 
 function setupRecentlyConnected(){
-    recentlyConnected = recentlyConnected.filter((server, index, array) => index === array.findIndex(s => s.ipAddress === server.ipAddress));
+    recentlyConnected = recentlyConnected.filter((server, index, array) => index === array.findIndex(s => s.ipAddress.toLowerCase() === server.ipAddress.toLowerCase()));
     recentlyConnected = recentlyConnected.slice(0,6);
 
     recentConnections.innerHTML = '';
 
-    recentlyConnected.forEach((server, index) => {
-        const ipBtn = document.createElement('button');
-        ipBtn.style.fontWeight = 'bold';
-        ipBtn.textContent = `${server.serverName} | ${server.hostName} | ${server.ipAddress}`;
-
-        recentConnections.appendChild(ipBtn);
-        ipBtn.onclick = () => connectToServer(false, server.ipAddress);
-
-        recentlyConnected[index].btn = ipBtn;
+    recentlyConnected.forEach((server, index) => {        
+        recentlyConnected[index].div = createServerList(server, recentConnections, 'recentServer');
     });
+
     store.set('recentlyConnected', recentlyConnected);
-    pingRecentlyConnected();
 };
-
 function runSearches(){
-    if (!navigator.onLine){
-        configError('Not connected to a network');
-        return;
-    };
+    ipcRenderer.send('bonjour', {type: 'find'});
+    ipcRenderer.on('bonjour', (event, args) => {
+        const ip = args.service.addresses.filter(ip => ip.split('.').length === 4).join();
+        if (args.action === 'up') { //displays server in the "open servers" section
+            const names = JSON.parse(args.service.name);
 
-    halt = false;
-    searching = true;
-    toggleSearchBtns(false);
+            createServerList({ipAddress: ip, serverName: names.serverName, hostName: names.hostName}, serverFoundList, 'foundServer');
 
-    searchBox.style.display = 'block';
-    searchBox.innerHTML = '';
+            //change status of server if in recently connected
+            for (const server of recentConnections.children) {
+                if (server.id.replace('recentServer-', '') === ip){
+                    const statusElement = server.getElementsByClassName('serverStatus')[0];
+                    statusElement.classList.remove('offline');
+                    statusElement.classList.add('online');
+                    statusElement.innerText = 'Online';
 
-    let ip = getIp().split('.');
-    ip.splice(-2, 2);
-    ip = ip.join('.'); //get the first two octets of the ip (xxx.xxx.123.123 - gets the x's)
+                    const serverName = server.getElementsByClassName('serverName')[0];
+                    serverName.innerText = names.serverName;
 
-    searchProgress.value = 0;
-    search(1, 25);
-
-    function search(min, max){
-        if (halt) return;
-
-        setSearchStatus(`Scanning ${ip}.${min}.0 to ${ip}.${max}.255`);
-        searchServers(min, max) //search a range of 25 for the third octet, along with 0 - 255 for the last octet (normally third octet would be the same for all devices but some big networks have different third octets)
-        .then(array => {
-            if (min < 251) { //if search has not reached 255 yet than continue searching the next 25
-                if (!halt) searchProgress.value += 0.1;
-                search(min + 25, max + 25);
-            } else {
-                if (toastNotif.value !== 'msg') sendNotif(`Finished Scan - ${searchBox.children.length} server${searchBox.children.length === 1 ? '' : 's'} found`);
-                setSearchStatus('Finished Scan');
-                toggleSearchBtns(true);
-                searching = false;
-
-                setTimeout(() => {
-                    document.onclick = () => {
-                        setSearchStatus('');
-                        document.onclick = null;
-                    };
-                }, 100);
-            };
-
-            if (array.length < 1) return;
-
-            array.forEach(ip => { //for each server found in the same range of 25 
-                const ipBtn = document.createElement('button');
-                searchBox.appendChild(ipBtn);
-                ipBtn.onclick = () => connectToServer(false, ip); //creates the button that will connect to the server
-
-                const req = http.request({hostname: ip, port: port, method: 'GET'}, res => { //sends a request to the server for the host's username
-                    res.on('data', data => {
-                        data = JSON.parse(data);
-                        ipBtn.innerText = `${data.serverName} | ${data.hostName} | ${ip}`;
-                    });
-                });
-                req.on('error', error => {
-                    console.error(error)
-                });
-                req.end();
-            });
-    
-        })
-        .catch(error => {
-            console.error(error);
-        });
-    };
-
-    function searchServers(minI, maxI){
-        const net = require('net');
-        const Socket = net.Socket;
-
-        let addresses = [];
-        let socketNum = 0;
-      
-        const promise = new Promise((resolve, reject) => {
-            for (let i = minI; i <= maxI && !halt; i++){
-                for (let j = 1; j <= 255 && !halt; j++){
-
-                    let status = null;
-                    const socket = new Socket();
-
-                    ++socketNum;
-        
-                    socket.on('connect', () => {
-                        status = 'open';
-                        socket.end();
-                    });
-                    socket.setTimeout(1500);
-                    socket.on('timeout', () => {
-                        status = 'closed';
-                        socket.destroy();
-                    });
-                    socket.on('error', () => status = 'closed');
-                    socket.on('close', () => {
-                        --socketNum;
-                        if (status == "open"){
-                            addresses.push(`${ip}.${i}.${j}`);
-
-                            if (endWhenFound.checked){
-                                endSearch(joinWhenFound.checked ? addresses[0] : false);
-                                resolve(addresses);
-                                return;
-                            };
-                        };
-                        if (socketNum === 0) {
-                            resolve(addresses);
-                        };
-                    });
-                    socket.connect(port, `${ip}.${i}.${j}`);
+                    const serverUsername = server.getElementsByClassName('serverUsername')[0];
+                    serverUsername.innerText = names.hostName;
                 };
             };
-        });
-        return promise;
-    };
-};
+        } else if (args.action === 'down'){
+            const serverDiv = document.getElementById(`foundServer-${ip}`);
+            serverDiv?.remove();
 
-function setSearchStatus(message){searchStatus.innerHTML = message;};
-
-function endSearch(ip){
-    halt = true;
-    searching = false;
-    setSearchStatus('Ended scan');
-    toggleSearchBtns(true);
-    
-
-    setTimeout(() => {
-        document.onclick = () => {
-            setSearchStatus('');
-            document.onclick = null;
+            //change status of server if in recently connected
+            for (const server of recentConnections.children) {
+                if (server.id.replace('recentServer-', '') === ip){
+                    const statusElement = server.getElementsByClassName('serverStatus')[0];
+                    statusElement.classList.remove('online');
+                    statusElement.classList.add('offline');
+                    statusElement.innerText = 'Offline';
+                };
+            };
         };
-    }, 100);
+    });
+};
+function createServerList(server, parent, type) {
+    const serverDiv = document.createElement('div');
+    serverDiv.id = `${type}-${server.ipAddress}`;
+    serverDiv.setAttribute('class', 'serverContainer');
 
-    if (typeof ip === 'string') connectToServer(false, ip);
-    if (!ip && toastNotif.value !== 'msg') sendNotif('Server found');
+    const serverName = document.createElement('strong');
+    serverName.setAttribute('class', 'serverName');
+    serverName.innerText = server.serverName;
+
+    let status;
+    if (type === 'recentServer'){
+        status = document.createElement('strong');
+        status.setAttribute('class', 'serverStatus');
+        const onlineServices = ipcRenderer.sendSync('bonjour', { type: 'getServices' });
+        onlineServices?.forEach(service => {
+            const ip = service.addresses.filter(ip => ip.split('.').length === 4).join();
+            if (server.ipAddress === ip){
+                status.innerText = 'Online';
+                status.classList.add('online');
+                return;
+            };
+        });
+        if (!status.innerText) {
+            status.innerText = 'Offline';
+            status.classList.add('offline');
+        };
+    };
+
+    const joinBtn = document.createElement('button');
+    joinBtn.innerText = 'Join';
+    joinBtn.setAttribute('class', 'serverJoinBtn');
+
+    const detailsDiv = document.createElement('div');
+    detailsDiv.setAttribute('class', 'serverDetailsDiv');
+
+    const usernameStrong = document.createElement('strong');
+    usernameStrong.innerText = server.hostName;
+    usernameStrong.setAttribute('class', 'serverUsername');
+
+    const ipSpan = document.createElement('span');
+    ipSpan.innerText = server.ipAddress;
+    ipSpan.setAttribute('class', 'serverIp');
+
+    detailsDiv.append(usernameStrong, ' ', ipSpan);
+    serverDiv.append(serverName, ' ', status || '', joinBtn, detailsDiv);
+    parent.appendChild(serverDiv);
+
+    joinBtn.onclick = () => {
+        if ((isConnected && confirm(`Joining this server will ${isHosting ? 'close' : 'leave'} your current server. Continue?`)) || !isConnected){
+            if (isConnected) disconnectBtn.click();
+            connectToServer(server.ipAddress, false);
+        };
+    };
+
+    return serverDiv;
 };
 
 function parseMessage(data){
@@ -725,18 +672,8 @@ function getIp(){
     };
 };
 
-function toggleSearchBtns(normal){
-    searchProgress.style.display = normal ? 'none' : 'block';
-    searchServersBtn.style.display = normal ? 'inline' : 'none';
-    cancelSearchBtn.style.display = normal ? 'none': 'inline';
-    hostConfigBtn.style.display = normal ? 'inline' : 'none';
-    manualConnect.style.display = normal ? 'block' : 'none';
-    recentConnectionsDiv.style.display = normal ? 'block' : 'none';
-};
-
 function toggleConnectionBtns(normal){
-    hostConfigBtn.style.display = normal ? 'inline-block' : 'none';
-    searchServersBtn.style.display = normal ? 'inline-block' : 'none';
+    controlPanel.style.display = normal ? 'block' : 'none';
     disconnectBtn.style.display = normal ? 'none' : 'inline-block';
     manualConnect.style.display = normal ? 'block' : 'none';
     recentConnectionsDiv.style.display = normal ? 'block' : 'none';
@@ -783,27 +720,6 @@ function displayAppVersion(){
     appVersion.innerText = `v${require("electron").remote.app.getVersion()}`;
 };
 
-function pingRecentlyConnected(){
-    recentlyConnected.forEach(server => {
-        const btn = server.btn;
-        btn.style.color = 'red';
-        btn.title = 'Pinging...';
-        const req = http.request({hostname: server.ipAddress, port: port, method: 'GET'}, res => {
-            btn.style.color = 'green';
-            btn.title = 'Server Online';
-            res.on('data', data => {
-                data = JSON.parse(data);
-                btn.innerText = `${data.serverName} | ${data.hostName} | ${server.ipAddress}`;
-            });
-        });
-        req.on('error', error => {
-            btn.title = 'Server Offline';
-        });
-        req.end();
-    });
-};
-pingConnectionsBtn.onclick = pingRecentlyConnected;
-
 settingsIcon.onclick = () => settingsContainer.style.display = 'flex';
 settingsContainer.onclick = event => {
     if (event.target === settingsContainer) settingsContainer.style.display = 'none';
@@ -820,9 +736,6 @@ settingsContainer.onclick = event => {
         fontSizeSlider.value = settings.fontSize;
         chatBox.style.fontSize = `${0.7 * fontSizeSlider.value}em`;
         fontSizeDisplay.innerText = `${settings.fontSize * 100}%`;
-        endWhenFound.checked = settings.endWhenFound;
-        joinWhenFound.checked = settings.joinWhenFound;
-        endWhenFound.disabled = joinWhenFound.checked ? true : false;
         autoStart.checked = settings.autoStart;
         flashFrame.checked = settings.flashFrame;
         ipcRenderer.send('flashFrame', flashFrame.checked);
@@ -838,8 +751,6 @@ settingsContainer.onclick = event => {
             username: username.value || false,
             fontSize: fontSizeSlider.value,
             autoStart: autoStart.checked,
-            endWhenFound: endWhenFound.checked,
-            joinWhenFound: joinWhenFound.checked,
             flashFrame: flashFrame.checked,
             toastNotif: toastNotif.value
         });
