@@ -45,7 +45,8 @@ const hostConfigBtn = g('hostConfigBtn'),
     hostConfigContainer = g('hostConfigContainer'),
     hostServerName = g('hostServerName'),
     hostServerBtn = g('hostServerBtn'),
-    controlPanel = g('controlPanel')
+    controlPanel = g('controlPanel'),
+    noServersPlaceholder = g('noServersPlaceholder');
 
 displayAppVersion();
 setupAutoupdating();
@@ -363,6 +364,7 @@ function connectToServer(ip, isHoster, websocketServer){
     });
 
     clientWs.on('open', () => {
+        if (serverFoundList.children.length === 2) noServersPlaceholder.style.display = 'block';
         isConnected = true;
         chatBox.innerHTML = '';
 
@@ -480,6 +482,11 @@ function connectToServer(ip, isHoster, websocketServer){
         };
         messageInput.removeEventListener('typing', sendTyping);
         document.removeEventListener('status', sendStatus);
+        if (serverFoundList.children.length === 1) {
+            noServersPlaceholder.style.display = 'block';
+         } else {
+            noServersPlaceholder.style.display = 'none';
+         }
     });
 
     document.onkeydown = sendMessage;
@@ -512,6 +519,8 @@ function setupRecentlyConnected(){
 
     recentConnections.innerHTML = '';
 
+    if (recentlyConnected.length === 0) recentConnections.innerHTML += '<span class="emptyListPlaceholder">Looks like you have no recent servers - join a few for them to show up here!</span>';
+
     recentlyConnected.forEach((server, index) => {        
         recentlyConnected[index].div = createServerList(server, recentConnections, 'recentServer');
     });
@@ -523,6 +532,7 @@ function runSearches(){
     ipcRenderer.on('bonjour', (event, args) => {
         const ip = args.service.addresses.filter(ip => ip.split('.').length === 4).join();
         if (args.action === 'up') { //displays server in the "open servers" section
+            noServersPlaceholder.style.display = 'none';
             const names = JSON.parse(args.service.name);
 
             createServerList({ipAddress: ip, serverName: names.serverName, hostName: names.hostName}, serverFoundList, 'foundServer');
@@ -555,6 +565,7 @@ function runSearches(){
                     statusElement.innerText = 'Offline';
                 };
             };
+            if (serverFoundList.children.length === 1) noServersPlaceholder.style.display = 'block';
         };
     });
 };

@@ -158,10 +158,8 @@ input[type=range] {
     border: ridge;
 }
 
-.serverList {
-    border-left: solid lightgrey 1px;
-}
 .serverList > div {
+    border-left: solid lightgrey 1px;
     border-bottom: solid lightgrey 1px;
 }
 .serverList > div:last-child {
@@ -181,4 +179,10 @@ input[type=range] {
 }
 .serverIp {
     color: gray;
+}
+.emptyListPlaceholder {
+    display: block;
+    margin-left: 5px;
+    font-size: 0.85em;
+    color: grey;
 }
