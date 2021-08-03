@@ -121,17 +121,21 @@
                 <div>
                     <h3>Notifications</h3>
                     <div>
-                        <label for="flashFrame">Taskbar icon flashing</label>
                         <input type="checkbox" id="flashFrame">
+                        <label for="flashFrame">Taskbar icon flashing</label>
+                    </div>
+                    <h4>Toast notifications</h4>
+                    <div>
+                        <input type="checkbox" id="notifServerOnline">
+                        <label for="notifServerOnline">Recently connected server online</label>
                     </div>
                     <div>
-                        <label for="toastNotif">System notifications</label>
-                        <select id="toastNotif">
-                            <option value="all">All</option>
-                            <option value="networkScan">Network scan only</option>
-                            <option value="msg">Messages Only</option>
-                            <option value="none">None</option>
-                        </select>
+                        <input type="checkbox" id="notifServerFound">
+                        <label for="notifServerFound">Server found on network</label>
+                    </div>
+                    <div>
+                        <input type="checkbox" id="notifMsg">
+                        <label for="notifMsg">Messages</label>
                     </div>
                 </div>
             </div>

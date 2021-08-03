@@ -9,7 +9,11 @@ const defaults = {
     fontSize: 1,
     autoStart: false,
     flashFrame: true,
-    toastNotif: 'all',
+    toastNotif: {
+        serverOnline: true,
+        serverFound: true,
+        msg: true
+    },
     serverName: false
 };
 const store = new Store({defaults});
@@ -41,12 +45,14 @@ const hostConfigBtn = g('hostConfigBtn'),
     fontSizeDisplay = g('fontSizeDisplay'),
     autoStart = g('autoStart'),
     flashFrame = g('flashFrame'),
-    toastNotif = g('toastNotif'),
     hostConfigContainer = g('hostConfigContainer'),
     hostServerName = g('hostServerName'),
     hostServerBtn = g('hostServerBtn'),
     controlPanel = g('controlPanel'),
-    noServersPlaceholder = g('noServersPlaceholder');
+    noServersPlaceholder = g('noServersPlaceholder'),
+    notifServerOnline = g('notifServerOnline'),
+    notifServerFound = g('notifServerFound'),
+    notifMsg = g('notifMsg');
 
 displayAppVersion();
 setupAutoupdating();
@@ -550,8 +556,11 @@ function runSearches(){
 
                     const serverUsername = server.getElementsByClassName('serverUsername')[0];
                     serverUsername.innerText = names.hostName;
+                    if (notifServerOnline.checked) sendNotif(`Recently connected server online: ${names.serverName}`);
+                    return;
                 };
             };
+            if (notifServerFound.checked) sendNotif(`Server open on network: ${names.serverName}`);
         } else if (args.action === 'down'){
             const serverDiv = document.getElementById(`foundServer-${ip}`);
             serverDiv?.remove();
@@ -651,7 +660,7 @@ function parseMessage(data){
     chatBox.innerHTML = '';
     messages.forEach(msg => chatBox.appendChild(msg));
     
-    if (toastNotif.value !== 'networkScan') sendNotif(`${data.username}: ${data.data}`);
+    if (notifMsg.checked) sendNotif(`${data.username}: ${data.data}`);
 };
 
 function newMessage(type, username, data){ //convert this to a constructor maybe someday
@@ -750,7 +759,9 @@ settingsContainer.onclick = event => {
         autoStart.checked = settings.autoStart;
         flashFrame.checked = settings.flashFrame;
         ipcRenderer.send('flashFrame', flashFrame.checked);
-        toastNotif.value = settings.toastNotif;
+        notifServerOnline.checked = settings.toastNotif.serverOnline;
+        notifServerFound.checked = settings.toastNotif.serverFound;
+        notifMsg.checked = settings.toastNotif.msg;
     };
 
     //save settings
@@ -763,7 +774,11 @@ settingsContainer.onclick = event => {
             fontSize: fontSizeSlider.value,
             autoStart: autoStart.checked,
             flashFrame: flashFrame.checked,
-            toastNotif: toastNotif.value
+            toastNotif: {
+                serverOnline: notifServerOnline.checked,
+                serverFound: notifServerFound.checked,
+                msg: notifMsg.checked
+            }
         });
         ipcRenderer.send('autoStart', autoStart.checked);
     };
@@ -786,7 +801,7 @@ settingsContainer.onclick = event => {
 
 let notif;
 function sendNotif(body) {
-    if (!document.hasFocus() && toastNotif.value !== 'none'){
+    if (!document.hasFocus()){
         ipcRenderer.send('ping', null);
 
         if (notif) notif.close(); //close the previous notification
