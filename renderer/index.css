@@ -97,7 +97,7 @@ input[type=range] {
     cursor: pointer;
     margin-left: 5px;
 }
-#settingsContainer, #hostConfigContainer {
+#settingsContainer, #hostConfigContainer, #manualConnectContainer {
     display: flex;
     position: fixed;
     top: 0;
@@ -109,7 +109,7 @@ input[type=range] {
     justify-content: center;
     align-items: center;
 }
-#settingsDiv, #hostConfigDiv {
+#settingsDiv, #hostConfigDiv, #manualConnectDiv {
     width: 300px;
     height: auto;
     background-color: rgba(255, 255, 255, 0.7);

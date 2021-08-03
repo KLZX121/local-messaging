@@ -47,6 +47,18 @@
             </div>
         </section>
 
+        <section id="manualConnectContainer" style="display: none;">
+            <div id="manualConnectDiv">
+                <h2 title="Enter the host address of the server to manually connect">Manually connect</h2>
+
+                <label for="manualHost">Host Address: </label>
+                <input type="text" id="manualHost" placeholder="Host Address">
+
+                <button id="manualConnectBtn">Connect</button>
+
+            </div>
+        </section>
+
         <section id="chatBox">
         </section>
 
@@ -65,17 +77,10 @@
             </div>
             <div id="controlPanel">
                 <button id="hostConfigBtn" title="Host a server on your local network">Host Server</button>
+                <button id="directConnectBtn" title="Enter a host address to directly connect to a server">Direct Connect</button>
             </div>
 
             <div id="errorDisplay"></div>
-
-            <div id="manualConnect">
-                <h3 title="Enter the host address of the server to manually connect">Manually connect</h3>
-                <input type="text" id="manualHost" placeholder="Host Address">
-
-                <button id="manualConnectBtn">Connect</button>
-
-            </div>
 
             <div id="recentConnectionsDiv">
                 <h3 title="Record of last 5 connections" class="inlineBlock">Recent Connections</h3>

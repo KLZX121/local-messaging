@@ -29,7 +29,7 @@ const hostConfigBtn = g('hostConfigBtn'),
     infoServerName = g('infoServerName'),
     infoServerAddress = g('infoServerAddress'),
     serverFoundList = g('serverFoundList'),
-    manualConnect = g('manualConnect'),
+    manualConnectDiv = g('manualConnectDiv'),
     manualConnectBtn = g('manualConnectBtn'),
     manualHost = g('manualHost'),
     messageInput = g('messageInput'),
@@ -52,7 +52,9 @@ const hostConfigBtn = g('hostConfigBtn'),
     noServersPlaceholder = g('noServersPlaceholder'),
     notifServerOnline = g('notifServerOnline'),
     notifServerFound = g('notifServerFound'),
-    notifMsg = g('notifMsg');
+    notifMsg = g('notifMsg'),
+    directConnectBtn = g('directConnectBtn'),
+    manualConnectContainer = g('manualConnectContainer');
 
 displayAppVersion();
 setupAutoupdating();
@@ -105,14 +107,26 @@ document.addEventListener('keydown', event => {
     };
 });
 
-hostConfigBtn.addEventListener('click', hostConfig);
-manualConnectBtn.addEventListener('click', () => {
-    if (!manualHost.value){
-        configError('Please enter a host');
-        return;
+directConnectBtn.addEventListener('click', manuallyConnectConfig);
+
+function manuallyConnectConfig(){
+    manualConnectContainer.style.display = 'flex';
+    manualHost.focus();
+
+    manualConnectContainer.onclick = event => {
+        if (event.target === manualConnectContainer) manualConnectContainer.style.display = 'none';
     };
-    connectToServer(manualHost.value, false);
-});
+
+    manualConnectBtn.onclick = () => {
+        if (!manualHost.value){
+            configError('Please enter a host');
+            return;
+        };
+        connectToServer(manualHost.value, false);
+        manualConnectContainer.style.display = 'none';
+    };
+}
+
 
 updateConnection();
 window.addEventListener('online', updateConnection);
@@ -128,6 +142,7 @@ function updateConnection(){
 runSearches();
 setupRecentlyConnected();
 
+hostConfigBtn.addEventListener('click', hostConfig);
 function hostConfig(){
     hostConfigContainer.style.display = 'flex';
     hostServerName.focus();
@@ -695,7 +710,7 @@ function getIp(){
 function toggleConnectionBtns(normal){
     controlPanel.style.display = normal ? 'block' : 'none';
     disconnectBtn.style.display = normal ? 'none' : 'inline-block';
-    manualConnect.style.display = normal ? 'block' : 'none';
+    manualConnectDiv.style.display = normal ? 'block' : 'none';
     recentConnectionsDiv.style.display = normal ? 'block' : 'none';
     memberListDiv.style.display = normal ? 'none' : 'block';
     if (normal) {
