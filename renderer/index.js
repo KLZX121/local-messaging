@@ -1,6 +1,7 @@
 const WebSocket = require('ws');
 
-const { ipcRenderer} = require('electron');
+const { ipcRenderer } = require('electron');
+const http = require('http');
 
 const Store = require('electron-store');
 const defaults = {
@@ -19,6 +20,7 @@ const defaults = {
 const store = new Store({defaults});
 
 const encryption = require('./encryption.js');
+const { getIpSubnet, networkSearch } = require('./networkSearch.js');
 
 const g = document.getElementById.bind(document);
 const hostConfigBtn = g('hostConfigBtn'),
@@ -54,7 +56,8 @@ const hostConfigBtn = g('hostConfigBtn'),
     notifServerFound = g('notifServerFound'),
     notifMsg = g('notifMsg'),
     directConnectBtn = g('directConnectBtn'),
-    manualConnectContainer = g('manualConnectContainer');
+    manualConnectContainer = g('manualConnectContainer'),
+    deepScanBtn = g('deepScanBtn');
 
 displayAppVersion();
 setupAutoupdating();
@@ -107,6 +110,62 @@ document.addEventListener('keydown', event => {
     };
 });
 
+deepScanBtn.addEventListener('click', () => {
+    networkSearch(port, addresses => {
+        addresses = addresses.flat();
+        addresses.forEach(address => {
+            for (const serverElement of serverFoundList.children) {
+                if (serverElement.id.replace('foundServer-', '') === address){
+                    return;
+                };
+            };
+            const req = http.request({hostname: address, port: port, method: 'GET'}, res => { //sends a request to the server for the server data
+                res.on('data', data => {
+                    data = JSON.parse(data.toString());
+                    noServersPlaceholder.style.display = 'none';
+                    createServerList({ipAddress: address, serverName: data.serverName, hostName: data.hostName}, serverFoundList, 'foundServer');
+
+                    for (const server of recentConnections.children) {
+                        if (server.id.replace('recentServer-', '') === address){
+                            const statusElement = server.getElementsByClassName('serverStatus')[0];
+                            statusElement.classList.remove('offline');
+                            statusElement.classList.add('online');
+                            statusElement.innerText = 'Online';
+        
+                            const serverName = server.getElementsByClassName('serverName')[0];
+                            serverName.innerText = data.serverName;
+        
+                            const serverUsername = server.getElementsByClassName('serverUsername')[0];
+                            serverUsername.innerText = data.hostName;
+                            if (notifServerOnline.checked) sendNotif(`Recently connected server online: ${data.serverName}`);
+                            return;
+                        };
+                    };
+                    if (notifServerFound.checked) sendNotif(`Server open on network: ${data.serverName}`);
+                });
+            });
+            req.on('error', error => {
+                parseMessage(newMessage('system error', 'Local System', error));
+            });
+            req.end();
+        })
+        const offlineServers = Array.from(serverFoundList.children).filter(serverElement => !addresses.includes(serverElement.id.replace('foundServer-', '')));
+        offlineServers.forEach(serverDiv => {
+            if (serverDiv === noServersPlaceholder) return;
+            for (const server of recentConnections.children) {
+                if (server.id.replace('recentServer-', '') === serverDiv.id.replace('foundServer-', '')){
+                    const statusElement = server.getElementsByClassName('serverStatus')[0];
+                    statusElement.classList.remove('online');
+                    statusElement.classList.add('offline');
+                    statusElement.innerText = 'Offline';
+                };
+            };
+            serverDiv?.remove();
+
+            if (serverFoundList.children.length === 1) noServersPlaceholder.style.display = 'block';
+        })         
+    })
+});
 directConnectBtn.addEventListener('click', manuallyConnectConfig);
 
 function manuallyConnectConfig(){
@@ -126,7 +185,6 @@ function manuallyConnectConfig(){
         manualConnectContainer.style.display = 'none';
     };
 }
-
 
 updateConnection();
 window.addEventListener('online', updateConnection);
@@ -183,29 +241,34 @@ function hostConfig(){
         let history = [];
         let wsId = 1; //used to identify individual websockets
     
-        setupWs();
+        const httpServer = http.createServer((req, res) => res.end(JSON.stringify({serverName , hostName: username.value})));
+        httpServer.on('error', error => {
+            httpServer.close(); 
+            parseMessage(newMessage('system error', 'Local System', `There was an error hosting the server: ${error}`));
+        })
+        httpServer.listen(port, getIpSubnet().ip, setupWs);
+
         function setupWs(){ //sets up the websocket server 
             chatBox.innerHTML = '';
             const wss = new WebSocket.Server({
-                host: getIp(),
-                port,
+                server: httpServer,
                 clientTracking: true
             });
             let banList = [];
 
-            ipcRenderer.send('bonjour', {type: 'service', serverName, hostName: username.value, port})
+            ipcRenderer.send('bonjour', {type: 'service', serverName, hostName: username.value, port});
+
+            isHosting = true;
+            parseMessage(newMessage('system', 'Local System', `Server hosted at http://${wss.address().address}:${port}`));
+            connectToServer(wss.address().address, true, wss);
 
             wss.on('error', error => {
                 parseMessage(newMessage('system error', 'Local System', `There was an error hosting the server: ${error}`));
             });
-            wss.on('listening', () => {
-                isHosting = true;
-                parseMessage(newMessage('system', 'Local System', `Server hosted at http://${wss.address().address}:${port}`));
-                connectToServer(wss.address().address, true, wss);
-            });
             wss.on('close', (e) => {
                 isHosting = false;
-                ipcRenderer.send('bonjour', {type: 'closeService'})
+                ipcRenderer.send('bonjour', {type: 'closeService'});
+                httpServer.close();
             });
             wss.on('connection', (ws, request) => {
     
@@ -593,7 +656,7 @@ function runSearches(){
         };
     });
 };
-function createServerList(server, parent, type) {
+function createServerList(server, parentElement, type) {
     const serverDiv = document.createElement('div');
     serverDiv.id = `${type}-${server.ipAddress}`;
     serverDiv.setAttribute('class', 'serverContainer');
@@ -638,7 +701,7 @@ function createServerList(server, parent, type) {
 
     detailsDiv.append(usernameStrong, ' ', ipSpan);
     serverDiv.append(serverName, ' ', status || '', joinBtn, detailsDiv);
-    parent.appendChild(serverDiv);
+    parentElement.appendChild(serverDiv);
 
     joinBtn.onclick = () => {
         if ((isConnected && confirm(`Joining this server will ${isHosting ? 'close' : 'leave'} your current server. Continue?`)) || !isConnected){
@@ -694,17 +757,6 @@ function newMessage(type, username, data){ //convert this to a constructor maybe
 function configError(error){
     errorDisplay.innerHTML = error;
     setTimeout(() => errorDisplay.innerHTML = '', 3000);
-};
-
-function getIp(){
-    const networks = require('os').networkInterfaces();
-    for (const type in networks) {
-        if (['wi', 'fi'].every(el => type.toLowerCase().includes(el))) {
-            return networks[type].filter(network => network.family === 'IPv4')[0]?.address;
-        } else  {
-            return false;
-        };
-    };
 };
 
 function toggleConnectionBtns(normal){
