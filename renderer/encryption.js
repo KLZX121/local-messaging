@@ -45,4 +45,69 @@ function decrypt(key, encryptedStr, charLength = 10){
     return decryptedStr;
 };
 
-module.exports = { randStr, createKey, encrypt, decrypt };
+const morseKey = ['-----', '.----', '..---', '...--', '....-', '.....', '-....', '--...', '---..', '----.'];
+const patterns = {
+    '--': 'A',
+    '..': 'C',
+    '-.': 'G',
+    '.-': 'T'
+}
+
+function standardEncrypt(plainStr){
+    let encryptedStr = '';
+    for (const char of plainStr){ //loop through each letter of the string
+        let morseCharCode = [];
+        for (const num of char.charCodeAt(0).toString()) { //convert each number of the charcode into morse
+            morseCharCode.push(morseKey[num]);
+        }
+        morseCharCode.forEach((code, index) => { //replace each morse number with a 3 digit pattern
+            let letter = '';
+            for (let i = 0; i <= 3; i += 2){
+                letter += patterns[code[i] + code[i + 1]];
+            }
+            letter += patterns[code[3] + code[4]];
+            morseCharCode[index] = letter;
+        });
+        const rnaPattern = ['A', 'C', 'G'];
+        while (morseCharCode.length < 5) { //insert random 3 digit patterns including "U" at random positions until char code length limit of 5 is reached
+            let randStr = rnaPattern[Math.floor(Math.random() * 3)] + rnaPattern[Math.floor(Math.random() * 3)];
+            const randPos = Math.floor(Math.random() * 4);
+            randStr = randStr.slice(0, randPos) + "U" + randStr.slice(randPos);
+            
+            morseCharCode.splice(Math.floor(Math.random() * 5), 0, randStr);
+        }
+        encryptedStr += morseCharCode.join('');
+    }
+    return encryptedStr;
+}
+
+function standardDecrypt(encryptedStr){
+    let plainStr = '';
+    for (let i = 0, len = encryptedStr.length; i < len; i += 15){ //loop each letter (15 encrypted characters)
+        const encryptedLetter = encryptedStr.slice(i, i + 15);
+        let letter = '';
+        for (let j = 0; j < 15; j += 3){ //loop each number in the character code (3 encrypted characters)
+            let num = encryptedLetter.slice(j, j + 3).split('');
+            if (num.includes('U')) continue;
+            num.forEach((digit, index) => { //convert pattern into morse
+                for (const pattern in patterns) {
+                    if (patterns[pattern] === digit) {
+                        num[index] = index === 2 ? pattern[1] : pattern
+                    }
+                }
+            });
+            num = num.join('');
+            morseKey.forEach((morseNum, index) => { //convert morse to number
+                if (num === morseNum) {
+                    num = index;
+                    return;
+                }
+            });
+            letter += num;
+        }
+        plainStr += String.fromCharCode(letter);
+    }
+    return plainStr;
+}
+
+module.exports = { randStr, createKey, encrypt, decrypt, standardEncrypt, standardDecrypt };

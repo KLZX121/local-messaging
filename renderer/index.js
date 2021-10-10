@@ -130,10 +130,8 @@ function deepScan(){
                 if (serverElement.id.replace('foundServer-', '') === address || (isHosting && address === getIpSubnet().ip)){
                     return;
                 };
-            };
-            const req = http.request({hostname: address, port: port, method: 'GET'}, res => { //sends a request to the server for the server data
-                res.on('data', data => {
-                    data = JSON.parse(data.toString());
+                requestServer(address, data => {
+                    data = JSON.parse(encryption.standardDecrypt(data.toString()));
                     noServersPlaceholder.style.display = 'none';
                     createServerList({ipAddress: address, serverName: data.serverName, hostName: data.hostName}, serverFoundList, 'foundServer');
 
@@ -143,10 +141,10 @@ function deepScan(){
                             statusElement.classList.remove('offline');
                             statusElement.classList.add('online');
                             statusElement.innerText = 'Online';
-        
+
                             const serverName = server.getElementsByClassName('serverName')[0];
                             serverName.innerText = data.serverName;
-        
+
                             const serverUsername = server.getElementsByClassName('serverUsername')[0];
                             serverUsername.innerText = data.hostName;
                             if (notifServerOnline.checked) sendNotif(`Recently connected server online: ${data.serverName}`);
@@ -154,12 +152,9 @@ function deepScan(){
                         };
                     };
                     if (notifServerFound.checked) sendNotif(`Server open on network: ${data.serverName}`);
-                });
-            });
-            req.on('error', error => {
-                parseMessage(newMessage('system error', 'Local System', error));
-            });
-            req.end();
+                })
+            };
+            
         })
         const offlineServers = Array.from(serverFoundList.children).filter(serverElement => !addresses.includes(serverElement.id.replace('foundServer-', '')));
         offlineServers.forEach(serverDiv => {
@@ -178,6 +173,16 @@ function deepScan(){
         });
         deepScanSpan.style.display = 'none';
     });
+}
+
+function requestServer(ip, callback){
+    const req = http.request({hostname: ip, port: port, method: 'GET'}, res => { //sends a request to the server for the server data
+        res.on('data', callback);
+    });
+    req.on('error', error => {
+        parseMessage(newMessage('system error', 'Local System', `There was an error making a request: ${error}`));
+    });
+    req.end();
 }
 
 directConnectBtn.addEventListener('click', manuallyConnectConfig);
@@ -254,7 +259,7 @@ function hostConfig(){
         let history = [];
         let wsId = 1; //used to identify individual websockets
     
-        const httpServer = http.createServer((req, res) => res.end(JSON.stringify({serverName , hostName: username.value})));
+        const httpServer = http.createServer((req, res) => res.end(encryption.standardEncrypt(JSON.stringify({serverName , hostName: username.value}))));
         httpServer.on('error', error => {
             httpServer.close(); 
             parseMessage(newMessage('system error', 'Local System', `There was an error hosting the server: ${error}`));
@@ -269,7 +274,7 @@ function hostConfig(){
             });
             let banList = [];
 
-            ipcRenderer.send('bonjour', {type: 'service', serverName, hostName: username.value, port});
+            ipcRenderer.send('bonjour', {type: 'service', ipAddress: wss.address().address, port});
 
             isHosting = true;
             parseMessage(newMessage('system', 'Local System', `Server hosted at http://${wss.address().address}:${port}`));
@@ -286,7 +291,7 @@ function hostConfig(){
             wss.on('connection', (ws, request) => {
     
                 if (banList.includes(request.socket.remoteAddress)) {
-                    ws.send(newMessage('system error', 'Server', 'You have been banned from this server'));
+                    ws.send(encryption.standardEncrypt(newMessage('system error', 'Server', 'You have been banned from this server')));
                     ws.close();
                     return;
                 };
@@ -313,14 +318,18 @@ function hostConfig(){
                 };
                 ws.encKey = encryption.createKey();
     
-                ws.send(newMessage('data', null, JSON.stringify({id: ws.id, serverName, encKey: ws.encKey}))); //assigns an id to the websocket
+                ws.send(encryption.standardEncrypt(newMessage('data', null, JSON.stringify({id: ws.id, serverName, encKey: ws.encKey})))); //assigns an id to the websocket and an encryption key
                 
                 if (history.length > 0) {
                     ws.send(encryption.encrypt(ws.encKey, newMessage('history', null, history))); //send chat history to connected websocket
                 };
     
                 ws.on('message', message => { //handle incoming message from websocket
-                    if (ws.username) message = encryption.decrypt(ws.encKey, message);
+                    if (ws.username) {
+                        message = encryption.decrypt(ws.encKey, message);
+                    } else {
+                        message = encryption.standardDecrypt(message);
+                    }
                     message = JSON.parse(message);
                     switch(message.type) {
     
@@ -468,11 +477,15 @@ function connectToServer(ip, isHoster, websocketServer){
         clearTimeout(timeout);
         parseMessage(newMessage('system', 'Local System', `Connected to http://${ip}:${port}`));
 
-        clientWs.send(newMessage('data', null, JSON.stringify({username: username.value, isHost: isHoster ? true : false}))); //send username and if host to websocket server
+        clientWs.send(encryption.standardEncrypt(newMessage('data', null, JSON.stringify({username: username.value, isHost: isHoster ? true : false})))); //send username and if host to websocket server
     });
 
     clientWs.on('message', message => { //handle incoming message from websocket server
-        if (clientWs.encKey) message = encryption.decrypt(clientWs.encKey, message);
+        if (clientWs.encKey) {
+            message = encryption.decrypt(clientWs.encKey, message);
+        } else {
+            message = encryption.standardDecrypt(message);
+        }
         message = JSON.parse(message);
 
         switch (message.type) {
@@ -627,31 +640,33 @@ function setupRecentlyConnected(){
 !function runBonjourSearches(){
     ipcRenderer.send('bonjour', {type: 'find'});
     ipcRenderer.on('bonjour', (event, args) => {
-        const ip = args.service.addresses.filter(ip => ip.split('.').length === 4).join();
+        const ip = encryption.standardDecrypt(args.service.name);
         if (args.action === 'up') { //displays server in the "open servers" section
-            noServersPlaceholder.style.display = 'none';
-            const names = JSON.parse(args.service.name);
-
-            createServerList({ipAddress: ip, serverName: names.serverName, hostName: names.hostName}, serverFoundList, 'foundServer');
-
-            //change status of server if in recently connected
-            for (const server of recentConnections.children) {
-                if (server.id.replace('recentServer-', '') === ip){
-                    const statusElement = server.getElementsByClassName('serverStatus')[0];
-                    statusElement.classList.remove('offline');
-                    statusElement.classList.add('online');
-                    statusElement.innerText = 'Online';
-
-                    const serverName = server.getElementsByClassName('serverName')[0];
-                    serverName.innerText = names.serverName;
-
-                    const serverUsername = server.getElementsByClassName('serverUsername')[0];
-                    serverUsername.innerText = names.hostName;
-                    if (notifServerOnline.checked) sendNotif(`Recently connected server online: ${names.serverName}`);
-                    return;
+            requestServer(ip, data => {
+                noServersPlaceholder.style.display = 'none';
+                data = JSON.parse(encryption.standardDecrypt(data.toString()));
+    
+                createServerList({ipAddress: ip, serverName: data.serverName, hostName: data.hostName}, serverFoundList, 'foundServer');
+    
+                //change status of server if in recently connected
+                for (const server of recentConnections.children) {
+                    if (server.id.replace('recentServer-', '') === ip){
+                        const statusElement = server.getElementsByClassName('serverStatus')[0];
+                        statusElement.classList.remove('offline');
+                        statusElement.classList.add('online');
+                        statusElement.innerText = 'Online';
+    
+                        const serverName = server.getElementsByClassName('serverName')[0];
+                        serverName.innerText = data.serverName;
+    
+                        const serverUsername = server.getElementsByClassName('serverUsername')[0];
+                        serverUsername.innerText = data.hostName;
+                        if (notifServerOnline.checked) sendNotif(`Recently connected server online: ${data.serverName}`);
+                        return;
+                    };
                 };
-            };
-            if (notifServerFound.checked) sendNotif(`Server open on network: ${names.serverName}`);
+                if (notifServerFound.checked) sendNotif(`Server open on network: ${data.serverName}`);
+            })
         } else if (args.action === 'down'){
             const serverDiv = document.getElementById(`foundServer-${ip}`);
             serverDiv?.remove();

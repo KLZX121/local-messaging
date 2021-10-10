@@ -4,6 +4,8 @@ const { autoUpdater } = require('electron-updater');
 const Store = require('electron-store');
 const bonjour = require('bonjour')();
 
+const encryption = require('./renderer/encryption.js');
+
 Store.initRenderer();
 Menu.setApplicationMenu(null);
 
@@ -110,7 +112,11 @@ function boot(){
     ipcMain.on('bonjour', (event, args) => {
         switch (args.type){
             case 'service':
-                hostService = bonjour.publish({ name: JSON.stringify({ serverName: args.serverName, hostName: args.hostName }), type: 'http', port: args.port});
+                hostService = bonjour.publish({
+                    name: encryption.standardEncrypt(args.ipAddress),
+                    type: 'http',
+                    port: args.port
+                });
                 break;
             case 'closeService':
                 bonjour.unpublishAll();
