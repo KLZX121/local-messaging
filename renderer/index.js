@@ -789,8 +789,8 @@ function toggleConnectionBtns(normal){
     memberListDiv.style.display = normal ? 'none' : 'block';
     if (normal) {
         username.removeAttribute('readonly');
-        infoServerAddress.innerText = '';
-        infoServerName.innerText = '';
+        infoServerAddress.innerText = getIpSubnet().ip;
+        infoServerName.innerText = username.value;
         memberList.innerHTML = '';
     };
 };
@@ -916,6 +916,9 @@ settingsContainer.onclick = event => {
         clearInterval(autoDeepScanId);
         autoDeepScanId = setInterval(deepScan, Math.abs(autoDeepScanInt.value) * 1000);
     }
+
+    infoServerAddress.innerText = getIpSubnet().ip;
+    infoServerName.innerText = username.value;
 }();
 
 let notif;
