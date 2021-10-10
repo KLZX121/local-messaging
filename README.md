@@ -43,3 +43,5 @@ There are three ways to connect to a server:
 * **Auto Updating** - The app will check for new updates on startup, or you can press the `Check for Updates` button on the top of the app to check for new updates. If an update is found, press the `Download update` to download it, and then the `Install Update` to install it. NOTE: Installing requires a restart of the app.
 
 * **Encryption** - All messages sent using the app is encrypted (meaning that it is a jumble of random characters when being sent over the network). This should provide sufficient security to prevent others on the network that are not using the app from seeing those messages.
+
+* **DevTools** - Right click on the tray menu to show the context menu. Press `Open DevTools` to open the developer tools for the app, where you can see any errors which may have occurred.
