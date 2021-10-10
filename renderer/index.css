@@ -186,3 +186,41 @@ input[type=range] {
     font-size: 0.85em;
     color: grey;
 }
+#deepScanTitle, .infoIcon {
+    display: inline;
+}
+.infoIcon {
+    position: absolute;
+    width: 15px;
+    height: 15px;
+    left: 9.1em;
+    top: 4px;
+}
+.info {
+    display: none;
+    position: absolute;
+    font-size: 0.85em;
+    bottom: 10px;
+    width: 290px;
+    height: 90px;
+    box-sizing: border-box;
+    padding: 0.3em;
+    background-color: rgb(190, 190, 190);
+    border: 2px solid rgb(141, 141, 141);
+    border-radius: 5px;
+    z-index: 2;
+}
+#infoIconDeepScan:hover~#infoDeepScan {
+    display: block;
+}
+#infoDeepScan {
+    display: none;
+}
+#autoDeepScanInt {
+    width: 4em;
+}
+#deepScanSpan {
+    margin-left: 0.3em;
+    color: dodgerblue;
+    font-size: 0.9em;
+}

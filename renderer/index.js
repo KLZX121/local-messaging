@@ -15,7 +15,11 @@ const defaults = {
         serverFound: true,
         msg: true
     },
-    serverName: false
+    serverName: null,
+    deepScan: {
+        doAuto: true,
+        interval: 30
+    }
 };
 const store = new Store({defaults});
 
@@ -57,10 +61,10 @@ const hostConfigBtn = g('hostConfigBtn'),
     notifMsg = g('notifMsg'),
     directConnectBtn = g('directConnectBtn'),
     manualConnectContainer = g('manualConnectContainer'),
-    deepScanBtn = g('deepScanBtn');
-
-displayAppVersion();
-setupAutoupdating();
+    deepScanBtn = g('deepScanBtn'),
+    doAutoDeepScan = g('doAutoDeepScan'),
+    autoDeepScanInt = g('autoDeepScanInt'),
+    deepScanSpan = g('deepScanSpan');
 
 const port = 121;
 let isHosting = false
@@ -110,7 +114,10 @@ document.addEventListener('keydown', event => {
     };
 });
 
-deepScanBtn.addEventListener('click', () => {
+deepScanBtn.addEventListener('click', deepScan);
+
+function deepScan(){
+    deepScanSpan.style.display = 'inline';
     networkSearch(port, addresses => {
         addresses = addresses.flat();
         addresses.forEach(address => {
@@ -163,9 +170,11 @@ deepScanBtn.addEventListener('click', () => {
             serverDiv?.remove();
 
             if (serverFoundList.children.length === 1) noServersPlaceholder.style.display = 'block';
-        })         
-    })
-});
+        });
+        deepScanSpan.style.display = 'none';
+    });
+}
+
 directConnectBtn.addEventListener('click', manuallyConnectConfig);
 
 function manuallyConnectConfig(){
@@ -197,7 +206,6 @@ function updateConnection(){
     };
 };
 
-runSearches();
 setupRecentlyConnected();
 
 hostConfigBtn.addEventListener('click', hostConfig);
@@ -611,7 +619,8 @@ function setupRecentlyConnected(){
 
     store.set('recentlyConnected', recentlyConnected);
 };
-function runSearches(){
+
+!function runBonjourSearches(){
     ipcRenderer.send('bonjour', {type: 'find'});
     ipcRenderer.on('bonjour', (event, args) => {
         const ip = args.service.addresses.filter(ip => ip.split('.').length === 4).join();
@@ -655,7 +664,8 @@ function runSearches(){
             if (serverFoundList.children.length === 1) noServersPlaceholder.style.display = 'block';
         };
     });
-};
+}();
+
 function createServerList(server, parentElement, type) {
     const serverDiv = document.createElement('div');
     serverDiv.id = `${type}-${server.ipAddress}`;
@@ -773,7 +783,7 @@ function toggleConnectionBtns(normal){
     };
 };
 
-function setupAutoupdating(){
+!function setupAutoupdating(){
     const autoUpdateStatus = g('autoUpdateStatus'),
         checkUpdateBtn = g('checkUpdateBtn'),
         downloadUpdateBtn = g('downloadUpdateBtn'),
@@ -800,12 +810,12 @@ function setupAutoupdating(){
 
         document.onmousedown = () => { if (['error', 'updateNone'].includes(type)) autoUpdateStatus.style.color = 'black'; };
     });
-};
+}()
 
-function displayAppVersion(){
+!function displayAppVersion(){
     const appVersion = g('appVersion');
     appVersion.innerText = `v${require("electron").remote.app.getVersion()}`;
-};
+}();
 
 settingsIcon.onclick = () => settingsContainer.style.display = 'flex';
 settingsContainer.onclick = event => {
@@ -829,6 +839,10 @@ settingsContainer.onclick = event => {
         notifServerOnline.checked = settings.toastNotif.serverOnline;
         notifServerFound.checked = settings.toastNotif.serverFound;
         notifMsg.checked = settings.toastNotif.msg;
+        deepScanBtn.style.display = settings.deepScan.doAuto ? 'none' : 'inline-block';
+        doAutoDeepScan.checked = settings.deepScan.doAuto;
+        autoDeepScanInt.disabled = !settings.deepScan.doAuto;
+        autoDeepScanInt.value = settings.deepScan.interval;
     };
 
     //save settings
@@ -845,6 +859,10 @@ settingsContainer.onclick = event => {
                 serverOnline: notifServerOnline.checked,
                 serverFound: notifServerFound.checked,
                 msg: notifMsg.checked
+            },
+            deepScan: {
+                doAuto: doAutoDeepScan.checked,
+                interval: autoDeepScanInt.value
             }
         });
         ipcRenderer.send('autoStart', autoStart.checked);
@@ -864,6 +882,28 @@ settingsContainer.onclick = event => {
 
     //flash frame
     flashFrame.oninput = () => ipcRenderer.send('flashFrame', flashFrame.checked);
+
+    //auto deep scan
+    let autoDeepScanId;
+    if (doAutoDeepScan.checked) {
+        deepScan();
+        autoDeepScanId = setInterval(deepScan, Math.abs(autoDeepScanInt.value) * 1000);
+    }
+    doAutoDeepScan.oninput = () => {
+        if (doAutoDeepScan.checked) {
+            autoDeepScanInt.disabled = false;
+            deepScanBtn.style.display = 'none';
+            autoDeepScanId = setInterval(deepScan, Math.abs(autoDeepScanInt.value) * 1000);
+        } else {
+            autoDeepScanInt.disabled = true;
+            deepScanBtn.style.display = 'inline-block';
+            clearInterval(autoDeepScanId);
+        }
+    }
+    autoDeepScanInt.onchange = () => {
+        clearInterval(autoDeepScanId);
+        autoDeepScanId = setInterval(deepScan, Math.abs(autoDeepScanInt.value) * 1000);
+    }
 }();
 
 let notif;
