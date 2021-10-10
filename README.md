@@ -1,10 +1,10 @@
 ## Local Messaging
 A simple messaging app for use over local networks.
 
-The main purpose of this app is for use on networks that have blocked social media sites, such as school WiFi. As the app hosts a server locally on the host's computer, it bypassess all restrictions on the network. The app is placed on your [system tray](#additional-features), so you can hide the app without it quitting. 
+The main purpose of this app is for use on networks that have blocked social media sites, such as school WiFi. As the app hosts a server locally on the host's computer, it bypassess all restrictions on the network. The app is placed on your [system tray](#additional-information), so you can hide the app without it quitting. 
 
 ### Hosting
-Press the `Host Server` button under the chatbox, and a server will be automatically created using your IP address on port 121.
+Press the `Host Server` button under the chatbox, and change your desired host settings. A server will be automatically created on IP address on port 121.
 
 Your host address will be displayed on the top of the app, which will allow other people to connect to the server if they are manually connecting.
 
@@ -12,25 +12,32 @@ Your host address will be displayed on the top of the app, which will allow othe
 You can only connect to servers that are on the same WiFi network as you.  
 There are three ways to connect to a server:
 * ##### Scan for open servers on the network
-    This option should be used when you **do not know the IP address** of the server you are connecting to.
+    This option should be used when you **do not know the IP address** of the server you are connecting to, or are just browsing for open servers.
 
-    Press the `Search for Servers` button, and the app will automatically scan your entire local network for open servers. Once a server or multiple servers have been found, they will pop up as buttons with the host's name and IP address. Clicking on it will connect you to the server. NOTE: This option may cause lag on your computer, and may take up to a minute or multiple minutes depending on how powerful your computer is and the size of the network.
+    There are two different search methods:
+    
+    1. *Default* - This option is automatic. The app constantly scans a small network range for open servers. This tends to work for small networks (such as home networks) but will miss the majority of servers on larger networks (such as school networks).
 
-    **Configuration options:**
-    * End search when server found? - If checked, the app will stop scanning once a server has been found - this is reccommended if you are only searching for a single server.
-    * Auto-join when server found? - If checked, the app will end the search when a server is found, and automatically join it.
-* ##### Manually connect to an IP address
-    This option should be used if you **do know the IP address** of the server you are connecting to.
+    2. *Deep scan* - This method can either be set to run automatically at certain intervals, or you can choose to activate it yourself (see configuration options below). The app will scan every possible address on the network for open servers. This method varies greatly on the network; on smaller networks, it is faster and less resource intensive while on larger networks, it can be slower the bigger the network, and more resource heavy. However, it is the most effective way to search for servers.
 
-    Enter the full host address of the host server, and press `Connect`. You should then be connected to the server if you have entered the address correctly, and there is an open server on the network.
+        **Configuration options (in settings):**
+        * Toggle auto deep scanning - If turned on, the app will run a deep scan every interval specified. If turned off, the `Deep Scan` button (below message box) becomes available, and deep scan will only run if the button is pressed
+        * Auto deep scan interval - The number of seconds between each deep scan, if auto deep scanning is enabled
 * ##### Recent connections
     This option should be used if you are **reconnecting to a server** you have joined this session.
 
-    Buttons displaying host name and IP address will be created for each server that you have recently connected to in the current session (quitting the app will end the session). Only the 5 most recent connections will be shown. NOTE: Recent connections are shown regardless of whether they are online or offline, meaning that it is possible not all connections shown are still being hosted.
+    The most recent 5 servers which you have connected to will be shown in the "Recent Connections" section. Details of each server will be shown, along with a `Join` button. There is also a "Offline" or "Online" indicator - you will only be able to connect to the server if it is "Online".
+* ##### Manually connect to an IP address
+    This option should be used if you **do know the IP address** of the server you are connecting to.
 
-### Additional Features
-* **Username** - You can change your username from the default randomly generated username in the top of the screen, under Host Address, Port and Status. You will not be able to change it if you are connected to a server.
-* **Connections** - A list of members in the server you are currently connected to.
-* **WiFi** indicator - A WiFi symbol indicating whether you are connected to WiFi - you are required to be connected to a network for the app to work.
-* **System Tray** - The app will be hidden to your tray (the list of app icons on the right of your taskbar) when you close it (press the `X`), and you can show it again by pressing the app's icon in the tray. To quit the app, right click it in the tray and press `Quit`. Additionally, the app's icon will turn blue when it receives a notification such as a new message or server found when scanning the network.
-* **Auto Updating** - The app will check for new updates on startup, or you can press the `Check for Updates` button on the top of the app to check for new updates. If an update is found, press the `Download update` to download it, and then the `Install Update` to install it. NOTE: Installing require a restart of the app.
+    Press the `Direct Connect` button located underneath the message box, and enter the IP address of the server you want to join. Press `Connect`, and if there is an open server on the network with the IP address you entered, you should connect to it.
+
+
+### Additional Information
+* **System Tray** - The app will be hidden to your tray (the list of app icons on the right side of your taskbar) when you close it (pressing the `X`), and you can show it again by pressing the app's icon in the tray. To quit the app, right click it in the tray and press `Quit`. Additionally, the app's icon will change colour when it receives a notification such as a new message or server found when scanning the network.
+
+* **IP Address** - The IP address used in this application is a **Local IP** - it is only used inside the network. 
+
+* **Auto Updating** - The app will check for new updates on startup, or you can press the `Check for Updates` button on the top of the app to check for new updates. If an update is found, press the `Download update` to download it, and then the `Install Update` to install it. NOTE: Installing requires a restart of the app.
+
+* **Encryption** - All messages sent using the app is encrypted (meaning that it is a jumble of random characters when being sent over the network). This should provide sufficient security to prevent others on the network that are not using the app from seeing those messages.
