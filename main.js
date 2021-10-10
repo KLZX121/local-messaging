@@ -117,7 +117,7 @@ function boot(){
         switch (args.type){
             case 'service':
                 hostService = bonjour.publish({
-                    name: encryption.standardEncrypt(args.ipAddress),
+                    name: args.ipAddress.replaceAll('.', ' '),
                     type: 'http',
                     port: args.port
                 });

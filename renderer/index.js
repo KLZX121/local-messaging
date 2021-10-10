@@ -645,7 +645,7 @@ function setupRecentlyConnected(){
 !function runBonjourSearches(){
     ipcRenderer.send('bonjour', {type: 'find'});
     ipcRenderer.on('bonjour', (event, args) => {
-        const ip = encryption.standardDecrypt(args.service.name);
+        const ip = args.service.name.replaceAll(' ', '.');
         if (args.action === 'up') { //displays server in the "open servers" section
             requestServer(ip, data => {
                 noServersPlaceholder.style.display = 'none';
