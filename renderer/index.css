@@ -224,3 +224,6 @@ input[type=range] {
     color: dodgerblue;
     font-size: 0.9em;
 }
+#serverFoundDiv {
+    margin-top: 0.5em;
+}

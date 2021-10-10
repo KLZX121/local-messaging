@@ -122,7 +122,7 @@ function deepScan(){
         addresses = addresses.flat();
         addresses.forEach(address => {
             for (const serverElement of serverFoundList.children) {
-                if (serverElement.id.replace('foundServer-', '') === address){
+                if (serverElement.id.replace('foundServer-', '') === address || (isHosting && address === getIpSubnet().ip)){
                     return;
                 };
             };
