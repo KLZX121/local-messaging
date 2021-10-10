@@ -135,31 +135,30 @@ function deepScan(){
                 if (serverElement.id.replace('foundServer-', '') === address || (isHosting && address === getIpSubnet().ip)){
                     return;
                 };
-                requestServer(address, data => {
-                    data = JSON.parse(encryption.standardDecrypt(data.toString()));
-                    noServersPlaceholder.style.display = 'none';
-                    createServerList({ipAddress: address, serverName: data.serverName, hostName: data.hostName}, serverFoundList, 'foundServer');
-
-                    for (const server of recentConnections.children) {
-                        if (server.id.replace('recentServer-', '') === address){
-                            const statusElement = server.getElementsByClassName('serverStatus')[0];
-                            statusElement.classList.remove('offline');
-                            statusElement.classList.add('online');
-                            statusElement.innerText = 'Online';
-
-                            const serverName = server.getElementsByClassName('serverName')[0];
-                            serverName.innerText = data.serverName;
-
-                            const serverUsername = server.getElementsByClassName('serverUsername')[0];
-                            serverUsername.innerText = data.hostName;
-                            if (notifServerOnline.checked) sendNotif(`Recently connected server online: ${data.serverName}`);
-                            return;
-                        };
-                    };
-                    if (notifServerFound.checked) sendNotif(`Server open on network: ${data.serverName}`);
-                })
             };
-            
+            requestServer(address, data => {
+                data = JSON.parse(encryption.standardDecrypt(data.toString()));
+                noServersPlaceholder.style.display = 'none';
+                createServerList({ipAddress: address, serverName: data.serverName, hostName: data.hostName}, serverFoundList, 'foundServer');
+
+                for (const server of recentConnections.children) {
+                    if (server.id.replace('recentServer-', '') === address){
+                        const statusElement = server.getElementsByClassName('serverStatus')[0];
+                        statusElement.classList.remove('offline');
+                        statusElement.classList.add('online');
+                        statusElement.innerText = 'Online';
+
+                        const serverName = server.getElementsByClassName('serverName')[0];
+                        serverName.innerText = data.serverName;
+
+                        const serverUsername = server.getElementsByClassName('serverUsername')[0];
+                        serverUsername.innerText = data.hostName;
+                        if (notifServerOnline.checked) sendNotif(`Recently connected server online: ${data.serverName}`);
+                        return;
+                    };
+                };
+                if (notifServerFound.checked) sendNotif(`Server open on network: ${data.serverName}`);
+            })
         })
         const offlineServers = Array.from(serverFoundList.children).filter(serverElement => !addresses.includes(serverElement.id.replace('foundServer-', '')));
         offlineServers.forEach(serverDiv => {
