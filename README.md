@@ -5,6 +5,7 @@ The main purpose of this app is for use on networks that have blocked social med
 
 **Use the most updated version of the app for optimal performance**
 
+Note: The setup file will trigger firewalls and warnings as the code is unsigned - it is perfectly safe to download (all the code is here on GitHub)
 ### Hosting
 Press the `Host Server` button under the chatbox, and change your desired host settings. A server will be automatically created on IP address on port 121.
 
