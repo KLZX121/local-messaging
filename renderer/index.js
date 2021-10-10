@@ -123,6 +123,11 @@ deepScanBtn.addEventListener('click', deepScan);
 
 function deepScan(){
     deepScanSpan.style.display = 'inline';
+    let manualScan = false;
+    if (deepScanBtn.style.display !== 'none') {
+        deepScanBtn.style.display = 'none';
+        manualScan = true;
+    }
     networkSearch(port, addresses => {
         addresses = addresses.flat();
         addresses.forEach(address => {
@@ -172,6 +177,7 @@ function deepScan(){
             if (serverFoundList.children.length === 1) noServersPlaceholder.style.display = 'block';
         });
         deepScanSpan.style.display = 'none';
+        if (manualScan) deepScanBtn.style.display = 'inline-block';
     });
 }
 
