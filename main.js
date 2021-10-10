@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Menu, Tray, ipcMain, nativeImage } = require('electron');
+const { app, BrowserWindow, Menu, Tray, ipcMain, nativeImage, shell } = require('electron');
 const path = require('path');
 const { autoUpdater } = require('electron-updater');
 const Store = require('electron-store');
@@ -27,6 +27,10 @@ function boot(){
     win.loadFile('./renderer/index.html');
     win.webContents.on('did-finish-load', () => win.show());
     ipcMain.on('autoUpdateCheck', setupAutoupdate);
+    win.webContents.on('new-window', (event, url) => {
+        event.preventDefault();
+        shell.openExternal(url);
+    });
 
     setupNotifs();
 
