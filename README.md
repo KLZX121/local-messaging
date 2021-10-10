@@ -3,6 +3,8 @@ A simple messaging app for use over local networks.
 
 The main purpose of this app is for use on networks that have blocked social media sites, such as school WiFi. As the app hosts a server locally on the host's computer, it bypassess all restrictions on the network. The app is placed on your [system tray](#additional-information), so you can hide the app without it quitting. 
 
+**Use the most updated version of the app for optimal performance**
+
 ### Hosting
 Press the `Host Server` button under the chatbox, and change your desired host settings. A server will be automatically created on IP address on port 121.
 
