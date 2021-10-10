@@ -21,7 +21,12 @@ const defaults = {
         interval: 30
     }
 };
-const store = new Store({defaults});
+const migrations = {
+    '1.2.0': store => {
+        store.clear();
+    }
+}
+const store = new Store({defaults, migrations});
 
 const encryption = require('./encryption.js');
 const { getIpSubnet, networkSearch } = require('./networkSearch.js');
@@ -522,8 +527,7 @@ function connectToServer(ip, isHoster, websocketServer){
                     memberList.appendChild(mainDiv);
 
                     if (member.isHost && member.id !== clientWs.id){ //adds the server to recently connected using the host's name and ip
-                        recentlyConnected.unshift({serverName, hostName: member.username, ipAddress: ip});
-
+                        recentlyConnected.unshift({serverName, hostName: member.username, ipAddress: ip, time: new Date()});
                         setupRecentlyConnected();
                     };
                 });
@@ -675,7 +679,7 @@ function createServerList(server, parentElement, type) {
     serverName.setAttribute('class', 'serverName');
     serverName.innerText = server.serverName;
 
-    let status;
+    let status, timeSpan;
     if (type === 'recentServer'){
         status = document.createElement('strong');
         status.setAttribute('class', 'serverStatus');
@@ -692,6 +696,14 @@ function createServerList(server, parentElement, type) {
             status.innerText = 'Offline';
             status.classList.add('offline');
         };
+
+        timeSpan = document.createElement('span');
+        timeSpan.setAttribute('class', 'grey');
+
+        const time = new Date(server.time);     
+        const hours = time.getHours(), minutes = time.getMinutes();
+
+        timeSpan.innerText = new Date(time).setHours(0, 0, 0, 0) === new Date().setHours(0, 0, 0, 0) ? `${hours.toString().length < 2 ? '0' : ''}${hours}:${minutes.toString().length < 2 ? '0' : ''}${minutes} ` : `${time.toLocaleDateString()} `;
     };
 
     const joinBtn = document.createElement('button');
@@ -707,9 +719,9 @@ function createServerList(server, parentElement, type) {
 
     const ipSpan = document.createElement('span');
     ipSpan.innerText = server.ipAddress;
-    ipSpan.setAttribute('class', 'serverIp');
+    ipSpan.setAttribute('class', 'grey');
 
-    detailsDiv.append(usernameStrong, ' ', ipSpan);
+    detailsDiv.append(timeSpan || '', usernameStrong, ' ', ipSpan);
     serverDiv.append(serverName, ' ', status || '', joinBtn, detailsDiv);
     parentElement.appendChild(serverDiv);
 

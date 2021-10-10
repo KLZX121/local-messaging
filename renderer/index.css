@@ -177,8 +177,8 @@ input[type=range] {
 .serverUsername {
     color: dodgerblue;
 }
-.serverIp {
-    color: gray;
+.grey {
+    color: grey;
 }
 .emptyListPlaceholder {
     display: block;
