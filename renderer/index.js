@@ -122,6 +122,10 @@ document.addEventListener('keydown', event => {
 deepScanBtn.addEventListener('click', deepScan);
 
 function deepScan(){
+    if (!navigator.onLine) {
+        configError('Not connected to a network');
+        return;
+    }
     deepScanSpan.style.display = 'inline';
     let manualScan = false;
     if (deepScanBtn.style.display !== 'none') {
@@ -158,8 +162,8 @@ function deepScan(){
                     };
                 };
                 if (notifServerFound.checked) sendNotif(`Server open on network: ${data.serverName}`);
-            })
-        })
+            });
+        });
         const offlineServers = Array.from(serverFoundList.children).filter(serverElement => !addresses.includes(serverElement.id.replace('foundServer-', '')));
         offlineServers.forEach(serverDiv => {
             if (serverDiv === noServersPlaceholder) return;
@@ -216,8 +220,13 @@ window.addEventListener('offline', updateConnection);
 function updateConnection(){
     if (navigator.onLine){
         wifi.src = '../imgs/wifiConnected.png';
+        if (!isHosting) infoServerAddress.innerText = getIpSubnet().ip;
     } else {
         wifi.src = '../imgs/wifiDisconnected.png';
+        if (isConnected) {
+            parseMessage(newMessage('system error', 'Local System', 'You have lost network connection'));
+            disconnectBtn.click();
+        }
     };
 };
 
@@ -809,7 +818,7 @@ function toggleConnectionBtns(normal){
     memberListDiv.style.display = normal ? 'none' : 'block';
     if (normal) {
         username.removeAttribute('readonly');
-        infoServerAddress.innerText = getIpSubnet().ip;
+        infoServerAddress.innerText = getIpSubnet().ip || "Offline";
         infoServerName.innerText = username.value;
         memberList.innerHTML = '';
     };
@@ -937,7 +946,7 @@ settingsContainer.onclick = event => {
         autoDeepScanId = setInterval(deepScan, Math.abs(autoDeepScanInt.value) * 1000);
     }
 
-    infoServerAddress.innerText = getIpSubnet().ip;
+    infoServerAddress.innerText = getIpSubnet().ip || "Offline";
     infoServerName.innerText = username.value;
 }();
 
