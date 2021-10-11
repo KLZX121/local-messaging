@@ -1,6 +1,6 @@
 {
   "name": "local-messaging",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "A simple messaging app for use over local networks",
   "main": "main.js",
   "scripts": {
