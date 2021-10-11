@@ -113,54 +113,60 @@
                 <div>
                     <h3>General</h3>
                     <div>
-                        <label for="username">Username:</label>
-                        <input type="text" id="username" class="settingsInput" placeholder="Username" maxlength="20" spellcheck="false">
-                    </div>
-                    <div>
-                        <label for="fontSizeSlider">Font Size:</label>
-                        <input id="fontSizeSlider" type="range" min="0.2" max="2" step="0.2">
-                        <span id="fontSizeDisplay"></span>
-                    </div>
-                    <div>
-                        <label for="autoStart" title="Save settings to take effect">Boot app on computer start-up</label>
-                        <input type="checkbox" id="autoStart">
+                        <div>
+                            <label for="username">Username:</label>
+                            <input type="text" id="username" class="settingsInput" placeholder="Username" maxlength="20" spellcheck="false">
+                        </div>
+                        <div>
+                            <label for="fontSizeSlider">Font Size:</label>
+                            <input id="fontSizeSlider" type="range" min="0.2" max="2" step="0.2">
+                            <span id="fontSizeDisplay"></span>
+                        </div>
+                        <div>
+                            <label for="autoStart" title="Save settings to take effect">Boot app on computer start-up</label>
+                            <input type="checkbox" id="autoStart">
+                        </div>
                     </div>
                 </div>
 
                 <div>
                     <h3>Notifications</h3>
                     <div>
-                        <input type="checkbox" id="flashFrame">
-                        <label for="flashFrame">Taskbar icon flashing</label>
-                    </div>
-                    <h4>Toast notifications</h4>
-                    <div>
-                        <input type="checkbox" id="notifServerOnline">
-                        <label for="notifServerOnline">Recently connected server online</label>
-                    </div>
-                    <div>
-                        <input type="checkbox" id="notifServerFound">
-                        <label for="notifServerFound">Server found on network</label>
-                    </div>
-                    <div>
-                        <input type="checkbox" id="notifMsg">
-                        <label for="notifMsg">Messages</label>
+                        <div>
+                            <input type="checkbox" id="flashFrame">
+                            <label for="flashFrame">Taskbar icon flashing</label>
+                        </div>
+                        <h4 style="border: none;">Toast notifications</h4>
+                        <div>
+                            <input type="checkbox" id="notifServerOnline">
+                            <label for="notifServerOnline">Recently connected server online</label>
+                        </div>
+                        <div>
+                            <input type="checkbox" id="notifServerFound">
+                            <label for="notifServerFound">Server found on network</label>
+                        </div>
+                        <div>
+                            <input type="checkbox" id="notifMsg">
+                            <label for="notifMsg">Messages</label>
+                        </div>
                     </div>
                 </div>
 
                 <div>
-                    <div style="position: relative;">
+                    <div style="position: relative; padding-left: 0; margin-bottom: 0.5em; border: none;">
                         <h3 id="deepScanTitle">Deep network scan</h3>
                         <img src="../imgs/infoIcon.png" class="infoIcon" id="infoIconDeepScan">
                         <p class="info" id="infoDeepScan">Searches large networks much more thoroughly than the default automatic server discovery, but will take more time and resources depending on size of network (use if servers are not automatically being found, especially on school networks)</p>
                     </div>
                     <div>
-                        <input type="checkbox" id="doAutoDeepScan">
-                        <label for="doAutoDeepScan">Auto Deep Scanning</label>
-                    </div>
-                    <div title="Interval between scans when auto deep scan is enabled">
-                        <label for="autoDeepScanInt">Scanning interval (seconds):</label>
-                        <input type="number" id="autoDeepScanInt" min="1">
+                        <div>
+                            <label for="doAutoDeepScan">Auto Deep Scanning</label>
+                            <input type="checkbox" id="doAutoDeepScan">
+                        </div>
+                        <div title="Interval between scans when auto deep scan is enabled">
+                            <label for="autoDeepScanInt">Scanning interval (seconds):</label>
+                            <input type="number" id="autoDeepScanInt" min="1">
+                        </div>
                     </div>
                 </div>
             </div>
