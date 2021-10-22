@@ -62,13 +62,19 @@ function getIpSubnet(){
                 ip: network?.address,
                 subnet: network?.netmask
             }
-        } else {
-            return false;
-        };
+        }
     };
+    throw 'No network found';
 };
 
-function networkSearch(port, callback, data = networkData(getIpSubnet().ip, getIpSubnet().subnet)){
+function networkSearch(port, callback){
+    let data;
+    try {
+        data = networkData(getIpSubnet().ip, getIpSubnet().subnet) 
+    } catch (error) { 
+        throw error; 
+    }
+    
     const Socket = require('net').Socket;
 
     function* gen(min = data.minOctet, max = data.maxOctet, rangeIncrement = data.rangeIncrement - 1){

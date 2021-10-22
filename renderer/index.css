@@ -35,9 +35,6 @@ input[type=range] {
 #searchBox {
     margin-top: 10px;
 }
-#errorDisplay {
-    color: red;
-}
 .system {
     color: grey;
 }
@@ -47,7 +44,7 @@ input[type=range] {
 .join, .online {
     color: green;
 }
-.error, .offline {
+.error, .offline, #errorDisplay {
     color: red;
 }
 #memberListDiv {
@@ -112,7 +109,7 @@ input[type=range] {
 #settingsDiv, #hostConfigDiv, #manualConnectDiv {
     width: 300px;
     height: auto;
-    background-color: rgba(255, 255, 255, 0.7);
+    background-color: rgba(255, 255, 255, 0.8);
     padding: 10px;
     border-radius: 10px;
     font-size: 0.9em;

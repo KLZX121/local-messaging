@@ -132,56 +132,61 @@ function deepScan(){
         deepScanBtn.style.display = 'none';
         manualScan = true;
     }
-    networkSearch(port, addresses => {
-        addresses = addresses.flat();
-        addresses.forEach(address => {
-            for (const serverElement of serverFoundList.children) {
-                if (serverElement.id.replace('foundServer-', '') === address || (isHosting && address === getIpSubnet().ip)){
-                    return;
-                };
-            };
-            requestServer(address, data => {
-                data = JSON.parse(encryption.standardDecrypt(data.toString()));
-                noServersPlaceholder.style.display = 'none';
-                createServerList({ipAddress: address, serverName: data.serverName, hostName: data.hostName}, serverFoundList, 'foundServer');
-
-                for (const server of recentConnections.children) {
-                    if (server.id.replace('recentServer-', '') === address){
-                        const statusElement = server.getElementsByClassName('serverStatus')[0];
-                        statusElement.classList.remove('offline');
-                        statusElement.classList.add('online');
-                        statusElement.innerText = 'Online';
-
-                        const serverName = server.getElementsByClassName('serverName')[0];
-                        serverName.innerText = data.serverName;
-
-                        const serverUsername = server.getElementsByClassName('serverUsername')[0];
-                        serverUsername.innerText = data.hostName;
-                        if (notifServerOnline.checked) sendNotif(`Recently connected server online: ${data.serverName}`);
+    try {
+        networkSearch(port, addresses => {
+            const clientIp = getIpSubnet().ip;
+            addresses = addresses.flat();
+            addresses.forEach(address => {
+                for (const serverElement of serverFoundList.children) {
+                    if (serverElement.id.replace('foundServer-', '') === address || (isHosting && address === clientIp)){
                         return;
                     };
                 };
-                if (notifServerFound.checked) sendNotif(`Server open on network: ${data.serverName}`);
+                requestServer(address, data => {
+                    data = JSON.parse(encryption.standardDecrypt(data.toString()));
+                    noServersPlaceholder.style.display = 'none';
+                    createServerList({ipAddress: address, serverName: data.serverName, hostName: data.hostName}, serverFoundList, 'foundServer');
+    
+                    for (const server of recentConnections.children) {
+                        if (server.id.replace('recentServer-', '') === address){
+                            const statusElement = server.getElementsByClassName('serverStatus')[0];
+                            statusElement.classList.remove('offline');
+                            statusElement.classList.add('online');
+                            statusElement.innerText = 'Online';
+    
+                            const serverName = server.getElementsByClassName('serverName')[0];
+                            serverName.innerText = data.serverName;
+    
+                            const serverUsername = server.getElementsByClassName('serverUsername')[0];
+                            serverUsername.innerText = data.hostName;
+                            if (notifServerOnline.checked) sendNotif(`Recently connected server online: ${data.serverName}`);
+                            return;
+                        };
+                    };
+                    if (notifServerFound.checked) sendNotif(`Server open on network: ${data.serverName}`);
+                });
             });
-        });
-        const offlineServers = Array.from(serverFoundList.children).filter(serverElement => !addresses.includes(serverElement.id.replace('foundServer-', '')));
-        offlineServers.forEach(serverDiv => {
-            if (serverDiv === noServersPlaceholder) return;
-            for (const server of recentConnections.children) {
-                if (server.id.replace('recentServer-', '') === serverDiv.id.replace('foundServer-', '')){
-                    const statusElement = server.getElementsByClassName('serverStatus')[0];
-                    statusElement.classList.remove('online');
-                    statusElement.classList.add('offline');
-                    statusElement.innerText = 'Offline';
+            const offlineServers = Array.from(serverFoundList.children).filter(serverElement => !addresses.includes(serverElement.id.replace('foundServer-', '')));
+            offlineServers.forEach(serverDiv => {
+                if (serverDiv === noServersPlaceholder) return;
+                for (const server of recentConnections.children) {
+                    if (server.id.replace('recentServer-', '') === serverDiv.id.replace('foundServer-', '')){
+                        const statusElement = server.getElementsByClassName('serverStatus')[0];
+                        statusElement.classList.remove('online');
+                        statusElement.classList.add('offline');
+                        statusElement.innerText = 'Offline';
+                    };
                 };
-            };
-            serverDiv?.remove();
-
-            if (serverFoundList.children.length === 1) noServersPlaceholder.style.display = 'block';
+                serverDiv?.remove();
+    
+                if (serverFoundList.children.length === 1) noServersPlaceholder.style.display = 'block';
+            });
+            deepScanSpan.style.display = 'none';
+            if (manualScan) deepScanBtn.style.display = 'inline-block';
         });
-        deepScanSpan.style.display = 'none';
-        if (manualScan) deepScanBtn.style.display = 'inline-block';
-    });
+    } catch (error) {
+        configError(error)
+    }
 }
 
 function requestServer(ip, callback){
@@ -220,9 +225,16 @@ window.addEventListener('offline', updateConnection);
 function updateConnection(){
     if (navigator.onLine){
         wifi.src = '../imgs/wifiConnected.png';
-        if (!isHosting) infoServerAddress.innerText = getIpSubnet().ip;
+        if (!isConnected) {
+            infoServerAddress.innerText = getIpSubnet().ip;
+            infoServerAddress.classList.remove('offline');
+            infoServerAddress.classList.add('online');
+        }
     } else {
         wifi.src = '../imgs/wifiDisconnected.png';
+        infoServerAddress.innerText = 'Offline';
+        infoServerAddress.classList.remove('online');
+        infoServerAddress.classList.add('offline');
         if (isConnected) {
             parseMessage(newMessage('system error', 'Local System', 'You have lost network connection'));
             disconnectBtn.click();
@@ -818,7 +830,15 @@ function toggleConnectionBtns(normal){
     memberListDiv.style.display = normal ? 'none' : 'block';
     if (normal) {
         username.removeAttribute('readonly');
-        infoServerAddress.innerText = getIpSubnet().ip || "Offline";
+        try {
+            infoServerAddress.innerText = getIpSubnet().ip;
+            infoServerAddress.classList.remove('offline');
+            infoServerAddress.classList.add('online');
+        } catch {
+            infoServerAddress.innerText = 'Offline';
+            infoServerAddress.classList.remove('online');
+            infoServerAddress.classList.add('offline');
+        }
         infoServerName.innerText = username.value;
         memberList.innerHTML = '';
     };
@@ -946,8 +966,19 @@ settingsContainer.onclick = event => {
         autoDeepScanId = setInterval(deepScan, Math.abs(autoDeepScanInt.value) * 1000);
     }
 
-    infoServerAddress.innerText = getIpSubnet().ip || "Offline";
+    //set title info
+    username.onchange = () => infoServerName.innerText = username.value;
+
     infoServerName.innerText = username.value;
+    try {
+        infoServerAddress.innerText = getIpSubnet().ip;
+        infoServerAddress.classList.remove('offline');
+        infoServerAddress.classList.add('online');
+    } catch {
+        infoServerAddress.innerText = 'Offline';
+        infoServerAddress.classList.remove('online');
+        infoServerAddress.classList.add('offline');
+    }
 }();
 
 let notif;
