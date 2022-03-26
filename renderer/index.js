@@ -723,10 +723,6 @@ function createServerList(server, parentElement, type) {
         timeSpan.innerText = new Date(time).setHours(0, 0, 0, 0) === new Date().setHours(0, 0, 0, 0) ? `${hours.toString().length < 2 ? '0' : ''}${hours}:${minutes.toString().length < 2 ? '0' : ''}${minutes} ` : `${time.toLocaleDateString()} `;
     };
 
-    const joinBtn = document.createElement('button');
-    joinBtn.innerText = 'Join';
-    joinBtn.setAttribute('class', 'serverJoinBtn');
-
     const detailsDiv = document.createElement('div');
     detailsDiv.setAttribute('class', 'serverDetailsDiv');
 
@@ -739,10 +735,10 @@ function createServerList(server, parentElement, type) {
     ipSpan.setAttribute('class', 'grey');
 
     detailsDiv.append(timeSpan || '', usernameStrong, ' ', ipSpan);
-    serverDiv.append(serverName, ' ', status || '', joinBtn, detailsDiv);
+    serverDiv.append(serverName, ' ', status || '', detailsDiv);
     parentElement.appendChild(serverDiv);
 
-    joinBtn.onclick = () => {
+    serverDiv.onclick = () => {
         if ((isConnected && confirm(`Joining this server will ${isHosting ? 'close' : 'leave'} your current server. Continue?`)) || !isConnected){
             if (isConnected) disconnectBtn.click();
             connectToServer(server.ipAddress, false);
