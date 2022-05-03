@@ -15,16 +15,46 @@ input[type=range] {
     top: 5px;
     outline: none;
 }
+textarea::-webkit-scrollbar {
+    display: none;
+}
+#chatSection {
+    padding: 0.3em;
+    padding-bottom: 0.1em;
+    background-image: linear-gradient(315deg, #83eaf1, #63a4ff);
+}
 #chatBox {
     padding: 10px;
-    outline: solid black 1px;
     height: 200px;
     overflow-y: scroll;
     font-size: 0.7em;
     overflow-wrap: break-word;
+    background: white;
 }
-#messageInput {
-    width: 265px;
+#messageBox {
+    margin-top: 0.3em;
+}
+#messageTextarea {
+    resize: none;
+    border: none;
+    outline: none;
+    width: 85%;
+    box-sizing: border-box;
+}
+#sendMessageBtn {
+    outline: none;
+    float: right;
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 15%;
+    height: 3.75em;
+    cursor: pointer;
+    font-weight: bold;
+}
+#sendMessageBtn:hover {
+    color: dodgerblue;
 }
 #hostConfig input {
     float: right;

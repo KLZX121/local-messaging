@@ -43,7 +43,7 @@ const hostConfigBtn = g('hostConfigBtn'),
     manualConnectDiv = g('manualConnectDiv'),
     manualConnectBtn = g('manualConnectBtn'),
     manualHost = g('manualHost'),
-    messageInput = g('messageInput'),
+    messageTextarea = g('messageTextarea'),
     memberList = g('memberList'),
     memberListDiv = g('memberListDiv'),
     wifi = g('wifi'),
@@ -81,7 +81,7 @@ const status = {
 
         if (this.isTypingValue !== value) {
             this.isTypingValue = value;
-            messageInput.dispatchEvent(new Event('typing'));
+            messageTextarea.dispatchEvent(new Event('typing'));
         };
     },
     get isTyping(){
@@ -101,11 +101,14 @@ const status = {
     }
 };
 
+messageTextarea.addEventListener('keydown', event => { if (event.key === 'Enter' && !event.shiftKey) event.preventDefault(); });
+
 document.addEventListener('keydown', event => {
     if (event.key !== 'Enter') return;
     switch (document.activeElement){
         case document.body:
-            messageInput.focus();
+            messageTextarea.focus();
+            event.preventDefault();
             break;
         case username:
             username.blur();
@@ -474,7 +477,7 @@ function connectToServer(ip, isHoster, websocketServer){
 
     const clientWs = new WebSocket(`http://${ip}:${port}`);
 
-    messageInput.addEventListener('typing', sendTyping);
+    messageTextarea.addEventListener('typing', sendTyping);
     document.addEventListener('status', sendStatus);
 
     function sendTyping(){
@@ -616,7 +619,7 @@ function connectToServer(ip, isHoster, websocketServer){
                 serverElement.removeAttribute('style');
             };
         }; */
-        messageInput.removeEventListener('typing', sendTyping);
+        messageTextarea.removeEventListener('typing', sendTyping);
         document.removeEventListener('status', sendStatus);
         noServersPlaceholder.style.display = serverFoundList.children.length === 1 ? 'block' : 'none';
 
@@ -628,12 +631,19 @@ function connectToServer(ip, isHoster, websocketServer){
 
     const messageSendEvent = new Event('messageSent');
     function sendMessage(event) { //send message to websocket server
-        if (event.type === 'keydown' && (event.key !== 'Enter' || document.activeElement !== messageInput)) return;
+        if (event.type === 'keydown' && (event.key !== 'Enter' || document.activeElement !== messageTextarea || event.shiftKey)) return;
         
-        if (clientWs.readyState === 1 && messageInput.value.trim().length > 0){
-            clientWs.send(encryption.encrypt(clientWs.encKey, newMessage('message', null, messageInput.value.trim())));
-            messageInput.value = '';
-            messageInput.dispatchEvent(messageSendEvent);
+        if (clientWs.readyState === 1 && messageTextarea.value.trim().length > 0){
+            if (messageTextarea.value.includes('\n')){ //only allow 4 lines
+                let indices = [], i = -1;
+                while ((i = messageTextarea.value.indexOf('\n', i + 1)) != -1){
+                    indices.push(i);
+                }
+                if (indices.length > 3) messageTextarea.value = messageTextarea.value.slice(0, indices[3]) + messageTextarea.value.slice(indices[3]).replaceAll('\n', ' ');
+            }
+            clientWs.send(encryption.encrypt(clientWs.encKey, newMessage('message', null, messageTextarea.value.trim())));
+            messageTextarea.value = '';
+            messageTextarea.dispatchEvent(messageSendEvent);
         };
     };
 
@@ -968,8 +978,8 @@ function sendNotif(body) {
 !function checkIfTyping(){
     let id;
 
-    messageInput.addEventListener('input', () => { //listen for input on the messageInput element
-        if (messageInput.value.length === 0) {
+    messageTextarea.addEventListener('input', () => { //listen for input on the messageTextarea element
+        if (messageTextarea.value.length === 0) {
             clearTimeout(id);
             id = setTimeout(() => status.isTyping = false, 1000);
         } else {
@@ -979,7 +989,7 @@ function sendNotif(body) {
             id = setTimeout(() => status.isTyping = false, 3000);
         };
     });
-    messageInput.addEventListener('messageSent', () => { //listen for when message is sent and reduce time to 1 second 
+    messageTextarea.addEventListener('messageSent', () => { //listen for when message is sent and reduce time to 1 second 
         clearTimeout(id);
         id = setTimeout(() => status.isTyping = false, 1000);
     });
