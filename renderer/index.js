@@ -140,12 +140,15 @@ function deepScan(){
             const clientIp = getIpSubnet().ip;
             addresses = addresses.flat();
             addresses.forEach(address => {
+                if (isConnected && address === infoServerAddress.innerText) { //if the address is the currently connected server
+                    return;
+                }
                 for (const serverElement of serverFoundList.children) {
-                    if (serverElement.id.replace('foundServer-', '') === address || (isHosting && address === clientIp)){
+                    if (serverElement.id.replace('foundServer-', '') === address || (isHosting && address === clientIp)){ //if address is already picked up (e.g. by bonjour) or is currently hosted
                         return;
                     };
                 };
-                requestServer(address);
+                requestServer(address, true); //set to ignore errors because if disconnected in middle of a deepscan, request would return error
             });
             const offlineServers = Array.from(serverFoundList.children).filter(serverElement => !addresses.includes(serverElement.id.replace('foundServer-', '')));
             offlineServers.forEach(serverDiv => {
@@ -170,7 +173,7 @@ function deepScan(){
     }
 }
 
-function requestServer(ip){
+function requestServer(ip, updateOnly = false){ //updateOnly ignores errors - only to update online/offline status
     const req = http.request({hostname: ip, port: port, method: 'GET'}, res => { //sends a request to the server for the server data
         res.on('data', data => {
             noServersPlaceholder.style.display = 'none';
@@ -198,7 +201,7 @@ function requestServer(ip){
         });
     });
     req.on('error', error => {
-        parseMessage(newMessage('system error', 'Local System', `There was an error making a request: ${error}`));
+        if (!updateOnly) parseMessage(newMessage('system error', 'Local System', `There was an error making a request: ${error}`));
     });
     req.end();
 }
@@ -625,7 +628,7 @@ function connectToServer(ip, isHoster, websocketServer){
         document.removeEventListener('status', sendStatus);
         noServersPlaceholder.style.display = serverFoundList.children.length === 1 ? 'block' : 'none';
 
-        requestServer(ip);
+        requestServer(ip, true);
     });
 
     document.onkeydown = sendMessage;
