@@ -507,6 +507,8 @@ function connectToServer(ip, isHoster, websocketServer){
         clearTimeout(timeout);
         parseMessage(newMessage('system', 'Local System', `Connected to http://${ip}:${port}`));
 
+        toggleConnectionBtns(false); //redundancy for joining from existing server
+
         clientWs.send(encryption.standardEncrypt(newMessage('data', null, JSON.stringify({username: username.value, isHost: isHoster ? true : false})))); //send username and if host to websocket server
     });
 
