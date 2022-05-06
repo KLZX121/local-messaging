@@ -69,7 +69,9 @@ const hostConfigBtn = g('hostConfigBtn'),
     deepScanBtn = g('deepScanBtn'),
     doAutoDeepScan = g('doAutoDeepScan'),
     autoDeepScanInt = g('autoDeepScanInt'),
-    deepScanSpan = g('deepScanSpan');
+    deepScanSpan = g('deepScanSpan'),
+    scrollTopIndicator = g('scrollTopIndicator'),
+    scrollBottomIndicator = g('scrollBottomIndicator');
 
 const port = 121;
 let isHosting = false
@@ -101,7 +103,27 @@ const status = {
     }
 };
 
+//change newline to shift+enter
 messageTextarea.addEventListener('keydown', event => { if (event.key === 'Enter' && !event.shiftKey) event.preventDefault(); });
+
+//add indicator on message box when multi-lines
+let scrollTop, scrollBottom;
+scrollTop = scrollBottom = false;
+
+messageTextarea.addEventListener('input', updateScrollVar);
+messageTextarea.addEventListener('scroll', updateScrollVar);
+function updateScrollVar() {
+    if (scrollTop != messageTextarea.scrollTop > 5 || scrollBottom != messageTextarea.scrollHeight - messageTextarea.clientHeight - messageTextarea.scrollTop > 5) {
+        scrollTop = messageTextarea.scrollTop > 5;
+        scrollBottom = messageTextarea.scrollHeight - messageTextarea.clientHeight - messageTextarea.scrollTop > 5;
+        updateScrollIndicator();
+    }
+}
+function updateScrollIndicator() {
+    console.log(scrollTop, scrollBottom);
+    scrollTopIndicator.style.opacity = scrollTop ? '1' : '0';
+    scrollBottomIndicator.style.opacity = scrollBottom ? '1' : '0';
+}
 
 document.addEventListener('keydown', event => {
     if (event.key !== 'Enter') return;

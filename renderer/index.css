@@ -33,6 +33,22 @@ textarea::-webkit-scrollbar {
 }
 #messageBox {
     margin-top: 0.3em;
+    position: relative;
+}
+.scrollIndicator {
+    position: absolute;
+    width: 85%;
+    height: 0;
+    border-bottom: 0.5em solid;
+    transition: opacity 0.3s linear;
+}
+#scrollTopIndicator {
+    bottom: 3.15em;
+    border-image: linear-gradient(rgba(0, 0, 0, 0.2), transparent) 10;
+}
+#scrollBottomIndicator {
+    bottom: 0.2em;
+    border-image: linear-gradient(transparent, rgba(0, 0, 0, 0.2)) 10;
 }
 #messageTextarea {
     resize: none;
