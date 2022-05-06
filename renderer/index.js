@@ -120,7 +120,6 @@ function updateScrollVar() {
     }
 }
 function updateScrollIndicator() {
-    console.log(scrollTop, scrollBottom);
     scrollTopIndicator.style.opacity = scrollTop ? '1' : '0';
     scrollBottomIndicator.style.opacity = scrollBottom ? '1' : '0';
 }
@@ -170,7 +169,7 @@ function deepScan(){
                         return;
                     };
                 };
-                requestServer(address, true); //set to ignore errors because if disconnected in middle of a deepscan, request would return error
+                requestServer(address, false, true); //set to ignore errors because if disconnected in middle of a deepscan, request would return error
             });
             const offlineServers = Array.from(serverFoundList.children).filter(serverElement => !addresses.includes(serverElement.id.replace('foundServer-', '')));
             offlineServers.forEach(serverDiv => {
@@ -195,37 +194,47 @@ function deepScan(){
     }
 }
 
-function requestServer(ip, updateOnly = false){ //updateOnly ignores errors - only to update online/offline status
-    const req = http.request({hostname: ip, port: port, method: 'GET'}, res => { //sends a request to the server for the server data
-        res.on('data', data => {
-            noServersPlaceholder.style.display = 'none';
-            data = JSON.parse(encryption.standardDecrypt(data.toString()));
+function requestServer(ip, getDataOnly = false, updateOnly = false){ //updateOnly ignores errors - only to update online/offline status
+    return new Promise(resolve => {
+        const req = http.request({hostname: ip, port: port, method: 'GET'}, res => { //sends a request to the server for the server data
+            res.on('data', data => {
+                data = JSON.parse(encryption.standardDecrypt(data.toString()));
 
-            createServerList({ipAddress: ip, serverName: data.serverName, hostName: data.hostName}, serverFoundList, 'foundServer');
+                if (getDataOnly) {
+                    resolve(data);
+                    return; 
+                }
 
-            for (const server of recentConnections.children) {
-                if (server.id.replace('recentServer-', '') === ip){
-                    const statusElement = server.getElementsByClassName('serverStatus')[0];
-                    statusElement.classList.remove('offline');
-                    statusElement.classList.add('online');
-                    statusElement.innerText = 'Online';
+                noServersPlaceholder.style.display = 'none';
 
-                    const serverName = server.getElementsByClassName('serverName')[0];
-                    serverName.innerText = data.serverName;
+                createServerList({ipAddress: ip, serverName: data.serverName, hostName: data.hostName}, serverFoundList, 'foundServer');
 
-                    const serverUsername = server.getElementsByClassName('serverUsername')[0];
-                    serverUsername.innerText = data.hostName;
-                    if (notifServerOnline.checked) sendNotif(`Recently connected server online: ${data.serverName}`);
-                    return;
+                for (const server of recentConnections.children) {
+                    if (server.id.replace('recentServer-', '') === ip){
+                        const statusElement = server.getElementsByClassName('serverStatus')[0];
+                        statusElement.classList.remove('offline');
+                        statusElement.classList.add('online');
+                        statusElement.innerText = 'Online';
+
+                        const serverName = server.getElementsByClassName('serverName')[0];
+                        serverName.innerText = data.serverName;
+
+                        const serverUsername = server.getElementsByClassName('serverUsername')[0];
+                        serverUsername.innerText = data.hostName;
+                        if (notifServerOnline.checked) sendNotif(`Recently connected server online: ${data.serverName}`);
+                        return;
+                    };
                 };
-            };
-            if (notifServerFound.checked) sendNotif(`Server open on network: ${data.serverName}`);
+                if (notifServerFound.checked) sendNotif(`Server open on network: ${data.serverName}`);
+
+                resolve();
+            });
         });
+        req.on('error', error => {
+            if (!updateOnly) parseMessage(newMessage('system error', 'Local System', `There was an error making a request: ${error}`));
+        });
+        req.end();
     });
-    req.on('error', error => {
-        if (!updateOnly) parseMessage(newMessage('system error', 'Local System', `There was an error making a request: ${error}`));
-    });
-    req.end();
 }
 
 directConnectBtn.addEventListener('click', manuallyConnectConfig);
@@ -314,7 +323,7 @@ function hostConfig(){
         let history = [];
         let wsId = 1; //used to identify individual websockets
     
-        const httpServer = http.createServer((req, res) => res.end(encryption.standardEncrypt(JSON.stringify({serverName , hostName: username.value}))));
+        const httpServer = http.createServer((req, res) => res.end(encryption.standardEncrypt(JSON.stringify({serverName, hostName: username.value, hostVersion: appVersion.innerText}))));
         httpServer.on('error', error => {
             httpServer.close(); 
             parseMessage(newMessage('system error', 'Local System', `There was an error hosting the server: ${error}`));
@@ -474,11 +483,7 @@ function hostConfig(){
     };
 };
 
-function connectToServer(ip, isHoster, websocketServer){
-    let serverName;
-
-    parseMessage(newMessage('system', 'Local System', `Connecting to ${ip}...`));
-
+async function connectToServer(ip, isHoster, websocketServer){
     if (!isHoster){
         if (!username.value) {
             configError('Please enter a username');
@@ -490,6 +495,15 @@ function connectToServer(ip, isHoster, websocketServer){
             return;
         };
     };
+
+    parseMessage(newMessage('system', 'Local System', `Connecting to ${ip}...`));
+
+    //check host version
+    const serverData = await requestServer(ip, true);
+    if (serverData.hostVersion !== appVersion.innerText){
+        parseMessage(newMessage('system error', 'Local System', `The host's app version (${serverData.hostVersion}) does not match your app version (${appVersion.innerText}). Either you or the host must update the app on Github (click the version number at the top of the app).`));
+        return;
+    }
 
     for (const serverElement of serverFoundList.children) {
         if (serverElement.id.replace('foundServer-', '') === ip){
@@ -544,6 +558,8 @@ function connectToServer(ip, isHoster, websocketServer){
             message = encryption.standardDecrypt(message);
         }
         message = JSON.parse(message);
+
+        let serverName;
 
         switch (message.type) {
             case 'history': //if receiving chat history
@@ -650,7 +666,7 @@ function connectToServer(ip, isHoster, websocketServer){
         document.removeEventListener('status', sendStatus);
         noServersPlaceholder.style.display = serverFoundList.children.length === 1 ? 'block' : 'none';
 
-        requestServer(ip, true);
+        requestServer(ip, false, true);
     });
 
     document.onkeydown = sendMessage;
