@@ -151,6 +151,7 @@ textarea::-webkit-scrollbar {
     margin: 0;
     justify-content: center;
     align-items: center;
+    z-index: 10;
 }
 #settingsDiv, #hostConfigDiv, #manualConnectDiv {
     width: 300px;

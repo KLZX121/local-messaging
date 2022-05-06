@@ -551,6 +551,8 @@ async function connectToServer(ip, isHoster, websocketServer){
         clientWs.send(encryption.standardEncrypt(newMessage('data', null, JSON.stringify({username: username.value, isHost: isHoster ? true : false})))); //send username and if host to websocket server
     });
 
+    let serverName;
+
     clientWs.on('message', message => { //handle incoming message from websocket server
         if (clientWs.encKey) {
             message = encryption.decrypt(clientWs.encKey, message);
@@ -558,8 +560,6 @@ async function connectToServer(ip, isHoster, websocketServer){
             message = encryption.standardDecrypt(message);
         }
         message = JSON.parse(message);
-
-        let serverName;
 
         switch (message.type) {
             case 'history': //if receiving chat history
